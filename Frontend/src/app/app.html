@@ -1,0 +1,6 @@
+<h1>Doctors</h1>
+<ul>
+  @for (d of doctors(); track d.doctor_id) {
+    <li>{{ d.full_name }} — {{ d.consultation_fee_kzt }} ₸</li>
+  }
+</ul>
