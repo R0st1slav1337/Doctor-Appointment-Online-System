@@ -63,7 +63,7 @@ class TimeSlots(models.Model):
 class Appointments(models.Model):
     appointment_id = models.AutoField(primary_key=True)
     patient = models.ForeignKey(Patients, models.DO_NOTHING)
-    slot = models.OneToOneField(TimeSlots, models.DO_NOTHING)
+    slot = models.ForeignKey(TimeSlots, models.DO_NOTHING)
     status = models.CharField(max_length=15)
     reason = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField()

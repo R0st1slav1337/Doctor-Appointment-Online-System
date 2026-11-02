@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -81,7 +82,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'clinic',
         'USER': 'postgres',
-        'PASSWORD': '',   # тот же пароль, что и в DataGrip на вашем компьютере
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),   # тот же пароль, что и в DataGrip на вашем компьютере
         'HOST': 'localhost',
         'PORT': '5432',
     }
