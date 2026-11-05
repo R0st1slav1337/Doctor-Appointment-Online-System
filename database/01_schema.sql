@@ -1,3 +1,4 @@
+
 -- Online Doctor Appointment System - schema (PostgreSQL 14+)
 -- Run order: 01_schema.sql, 02_functions_views.sql, 03_roles.sql, 04_seed.sql (optional)
 -- Safe to run on an EMPTY database. Use 00_reset.sql first to start over in development.
@@ -53,6 +54,50 @@ CREATE TABLE time_slots (
         doctor_id WITH =,
         tsrange(slot_date + start_time, slot_date + end_time) WITH &&
     )
+);
+
+-- Task 10 - Gulsezim
+-- Weekly working schedule for each doctor.
+-- One working period and one optional lunch break per day.
+
+CREATE TABLE weekly_schedules (
+    schedule_id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    doctor_id integer NOT NULL REFERENCES doctors(doctor_id),
+    day_of_week integer NOT NULL
+        CHECK (day_of_week BETWEEN 1 AND 7),
+    start_time time NOT NULL,
+    end_time time NOT NULL,
+    lunch_start time,
+    lunch_end time,
+    is_active boolean NOT NULL DEFAULT true,
+
+    CONSTRAINT weekly_schedule_time_order
+        CHECK (end_time > start_time),
+
+    CONSTRAINT weekly_schedule_lunch_pair
+        CHECK (
+            (lunch_start IS NULL AND lunch_end IS NULL)
+            OR
+            (lunch_start IS NOT NULL AND lunch_end IS NOT NULL)
+        ),
+
+    CONSTRAINT weekly_schedule_lunch_time
+        CHECK (
+            lunch_start IS NULL
+            OR lunch_end > lunch_start
+        ),
+
+    CONSTRAINT weekly_schedule_lunch_inside
+        CHECK (
+            lunch_start IS NULL
+            OR (
+                lunch_start >= start_time
+                AND lunch_end <= end_time
+            )
+        ),
+
+    CONSTRAINT weekly_schedule_unique_day
+        UNIQUE (doctor_id, day_of_week)
 );
 
 CREATE TABLE appointments (
