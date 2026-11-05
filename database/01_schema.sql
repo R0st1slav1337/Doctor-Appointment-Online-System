@@ -31,11 +31,52 @@ CREATE TABLE doctors (
     is_active            boolean      NOT NULL DEFAULT true
 );
 
+-- Countries for the phone input (dropdown on the frontend).
+-- dial_code = country calling code without '+'; min/max_digits = length of the national
+-- number WITHOUT the country code. example_mask is a hint for the input placeholder.
+CREATE TABLE phone_countries (
+    country_code char(2)     PRIMARY KEY CHECK (country_code ~ '^[A-Z]{2}$'),  -- ISO 3166-1 alpha-2
+    name         varchar(60) NOT NULL,
+    dial_code    varchar(4)  NOT NULL CHECK (dial_code ~ '^[1-9][0-9]{0,3}$'),
+    min_digits   smallint    NOT NULL CHECK (min_digits BETWEEN 4 AND 14),
+    max_digits   smallint    NOT NULL CHECK (max_digits BETWEEN 4 AND 14),
+    example_mask varchar(25),
+    sort_order   smallint    NOT NULL DEFAULT 100,
+    is_active    boolean     NOT NULL DEFAULT true,
+    CONSTRAINT phone_countries_digits_order CHECK (max_digits >= min_digits),
+    CONSTRAINT phone_countries_total_len    CHECK (length(dial_code) + max_digits <= 15)  -- E.164 limit
+);
+
+-- Reference data (needed by the app, so it is here and not in 04_seed.sql)
+INSERT INTO phone_countries(country_code, name, dial_code, min_digits, max_digits, example_mask, sort_order) VALUES
+ ('KZ','Казахстан',      '7',   10, 10, '+7 (701) 123-45-67',   1),
+ ('RU','Россия',         '7',   10, 10, '+7 (912) 345-67-89',   2),
+ ('UZ','Узбекистан',     '998',  9,  9, '+998 90 123-45-67',    3),
+ ('KG','Кыргызстан',     '996',  9,  9, '+996 555 123-456',     4),
+ ('TJ','Таджикистан',    '992',  9,  9, '+992 93 123-4567',     5),
+ ('TM','Туркменистан',   '993',  8,  8, '+993 6 123-4567',      6),
+ ('AZ','Азербайджан',    '994',  9,  9, '+994 50 123-45-67',    7),
+ ('AM','Армения',        '374',  8,  8, '+374 77 123-456',      8),
+ ('GE','Грузия',         '995',  9,  9, '+995 555 12-34-56',    9),
+ ('BY','Беларусь',       '375',  9,  9, '+375 29 123-45-67',   10),
+ ('UA','Украина',        '380',  9,  9, '+380 50 123-4567',    11),
+ ('TR','Турция',         '90',  10, 10, '+90 532 123-4567',    12),
+ ('CN','Китай',          '86',   7, 11, '+86 131 2345-6789',   13),
+ ('KR','Южная Корея',    '82',   8, 10, '+82 10 1234-5678',    14),
+ ('AE','ОАЭ',            '971',  8,  9, '+971 50 123-4567',    15),
+ ('IN','Индия',          '91',  10, 10, '+91 98765 43210',     16),
+ ('DE','Германия',       '49',   6, 11, '+49 151 23456789',    17),
+ ('GB','Великобритания', '44',   9, 10, '+44 7400 123456',     18),
+ ('US','США',            '1',   10, 10, '+1 (201) 555-0123',   19);
+
 CREATE TABLE patients (
     patient_id    integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     full_name     varchar(120) NOT NULL CHECK (length(btrim(full_name)) > 0),
     email         citext       NOT NULL UNIQUE,
-    phone         varchar(20)  NOT NULL CHECK (phone ~ '^\+?[0-9]{10,15}$'),
+    phone_country char(2)      NOT NULL DEFAULT 'KZ' REFERENCES phone_countries(country_code),
+    -- stored in E.164 format: '+' + country code + national number, digits only, e.g. +77011234567
+    -- the length for the selected country is checked by trigger trg_patients_phone (02_functions_views.sql)
+    phone         varchar(16)  NOT NULL CHECK (phone ~ '^\+[1-9][0-9]{6,14}$'),
     birth_date    date         NOT NULL CHECK (birth_date >= DATE '1900-01-01' AND birth_date <= CURRENT_DATE),
     password_hash varchar(255) NOT NULL,   -- will store a bcrypt/argon2 hash, never the password
     created_at    timestamptz  NOT NULL DEFAULT now()
@@ -106,7 +147,8 @@ CREATE TABLE appointments (
     slot_id        integer      NOT NULL REFERENCES time_slots(slot_id),
     status         varchar(15)  NOT NULL DEFAULT 'booked'
                    CHECK (status IN ('booked', 'cancelled', 'completed')),
-    reason         varchar(255),
+    -- free text from the patient; up to 1000 characters (was varchar(255) - too short)
+    reason         text         CHECK (reason IS NULL OR char_length(reason) <= 1000),
     created_at     timestamptz  NOT NULL DEFAULT now()
 );
 
@@ -120,3 +162,4 @@ CREATE INDEX ix_doctors_specialty     ON doctors(specialty_id);
 CREATE INDEX ix_slots_doctor_date     ON time_slots(doctor_id, slot_date);
 CREATE INDEX ix_appointments_patient  ON appointments(patient_id, status);
 CREATE INDEX ix_appointments_slot     ON appointments(slot_id);
+CREATE INDEX ix_patients_phone_country ON patients(phone_country);

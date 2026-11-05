@@ -16,6 +16,7 @@ GRANT USAGE ON SCHEMA public, extensions TO clinic_app, clinic_report;
 -- Application: read and write what it needs, but no DELETE and no schema changes.
 GRANT SELECT, INSERT, UPDATE ON patients, doctors, specialties, time_slots, appointments TO clinic_app;
 GRANT SELECT ON v_free_slots, v_doctor_load TO clinic_app;
+GRANT SELECT ON phone_countries TO clinic_app, clinic_report;
 GRANT EXECUTE ON FUNCTION book_appointment(integer, integer, varchar),
                           cancel_appointment(integer, integer),
                           reschedule_appointment(integer, integer, integer) TO clinic_app;
