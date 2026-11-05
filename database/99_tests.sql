@@ -23,6 +23,7 @@ SELECT pg_temp.expect_error('duplicate e-mail (any case) is rejected',
   'INSERT INTO patients(full_name,email,phone,birth_date,password_hash) VALUES (''x'',''A@MAIL.TEST'',''+77010000009'',''2000-01-01'',''h'')','23505');
 SELECT pg_temp.expect_error('bad phone is rejected',
   'INSERT INTO patients(full_name,email,phone,birth_date,password_hash) VALUES (''x'',''z@mail.test'',''abc'',''2000-01-01'',''h'')','23514');
+-- Task 10 - Amina: phone country and reason length tests
 SELECT pg_temp.expect_error('phone without + is rejected',
   'INSERT INTO patients(full_name,email,phone,birth_date,password_hash) VALUES (''x'',''p1@mail.test'',''77010000011'',''2000-01-01'',''h'')','23514');
 SELECT pg_temp.expect_error('KZ phone with wrong length is rejected',
@@ -74,6 +75,70 @@ BEGIN
 END $$;
 
 INSERT INTO results SELECT 'v_free_slots has no booked slot', NOT EXISTS (SELECT 1 FROM v_free_slots f JOIN appointments a ON a.slot_id=f.slot_id AND a.status='booked');
+
+-- Task 10 - Gulsezim: weekly schedule tests
+-- weekly schedules (a Monday far in the future is used so seed slots do not interfere)
+SELECT pg_temp.expect_error('day_of_week 8 is rejected',
+  'INSERT INTO weekly_schedules(doctor_id,day_of_week,start_time,end_time) VALUES (1,8,''09:00'',''12:00'')','23514');
+SELECT pg_temp.expect_error('schedule end before start is rejected',
+  'INSERT INTO weekly_schedules(doctor_id,day_of_week,start_time,end_time) VALUES (1,6,''12:00'',''09:00'')','23514');
+SELECT pg_temp.expect_error('second schedule for the same doctor and day is rejected',
+  'INSERT INTO weekly_schedules(doctor_id,day_of_week,start_time,end_time) VALUES (1,1,''09:00'',''12:00'')','23505');
+SELECT pg_temp.expect_error('schedule for unknown doctor is rejected (FK)',
+  'INSERT INTO weekly_schedules(doctor_id,day_of_week,start_time,end_time) VALUES (999,6,''09:00'',''12:00'')','23503');
+SELECT pg_temp.expect_error('lunch with only one time is rejected',
+  'INSERT INTO weekly_schedules(doctor_id,day_of_week,start_time,end_time,lunch_start) VALUES (1,6,''09:00'',''18:00'',''13:00'')','23514');
+SELECT pg_temp.expect_error('lunch outside working hours is rejected',
+  'INSERT INTO weekly_schedules(doctor_id,day_of_week,start_time,end_time,lunch_start,lunch_end) VALUES (1,6,''09:00'',''12:00'',''13:00'',''14:00'')','23514');
+SELECT pg_temp.expect_error('lunch end before start is rejected',
+  'INSERT INTO weekly_schedules(doctor_id,day_of_week,start_time,end_time,lunch_start,lunch_end) VALUES (1,6,''09:00'',''18:00'',''14:00'',''13:00'')','23514');
+SELECT pg_temp.expect_error('slot length 0 is rejected','SELECT generate_slots(CURRENT_DATE+60, CURRENT_DATE+61, 0)',NULL);
+
+DO $$
+DECLARE
+  d  date := CURRENT_DATE + 365 + ((8 - extract(isodow FROM CURRENT_DATE + 365)::int) % 7);  -- a Monday
+  n1 integer; n2 integer;
+BEGIN
+  n1 := generate_slots(d, d, 30);   -- 3 doctors x (09-13 and 14-18 = 8 hours = 16 slots)
+  n2 := generate_slots(d, d, 30);   -- second run must create nothing
+  INSERT INTO results VALUES ('generate_slots creates 16 slots per doctor (lunch excluded)', n1 = 48);
+  INSERT INTO results VALUES ('generate_slots is safe to run twice', n2 = 0);
+  INSERT INTO results SELECT 'no slot is created during lunch 13:00-14:00',
+    NOT EXISTS (SELECT 1 FROM time_slots WHERE slot_date = d AND start_time >= '13:00' AND start_time < '14:00');
+  INSERT INTO results VALUES ('generate_slots skips weekends (Sunday)', generate_slots(d + 6, d + 6, 30) = 0);
+  UPDATE doctors SET is_active = false WHERE doctor_id = 3;   -- no bookings, nothing to move
+  INSERT INTO results VALUES ('generate_slots skips inactive doctors', generate_slots(d + 7, d + 7, 30) = 32);
+END $$;
+
+-- Task 10 - Zhanerke: doctor deactivation test
+-- (adapted from her 05_doctor_deactivation_tests.sql into the PASS/FAIL list of this file)
+-- A future booking is cancelled and the patient is moved to another doctor of the same specialty.
+DO $$
+DECLARE
+  sp integer; d1 integer; d2 integer; old_slot integer; new_slot integer; booked_id integer;
+BEGIN
+  INSERT INTO specialties(name) VALUES ('Deactivation test') RETURNING specialty_id INTO sp;
+  INSERT INTO doctors(specialty_id, full_name, email, consultation_fee_kzt)
+    VALUES (sp, 'Old doctor', 'old@deact.test', 0) RETURNING doctor_id INTO d1;
+  INSERT INTO doctors(specialty_id, full_name, email, consultation_fee_kzt)
+    VALUES (sp, 'New doctor', 'new@deact.test', 0) RETURNING doctor_id INTO d2;
+  INSERT INTO time_slots(doctor_id, slot_date, start_time, end_time)
+    VALUES (d1, CURRENT_DATE + 30, '10:00', '10:30') RETURNING slot_id INTO old_slot;
+  INSERT INTO time_slots(doctor_id, slot_date, start_time, end_time)
+    VALUES (d2, CURRENT_DATE + 30, '10:00', '10:30') RETURNING slot_id INTO new_slot;
+  booked_id := book_appointment(1, old_slot, 'test reason');
+  UPDATE doctors SET is_active = false WHERE doctor_id = d1;
+  INSERT INTO results VALUES ('deactivation cancels the old booking',
+    (SELECT status FROM appointments WHERE appointment_id = booked_id) = 'cancelled');
+  INSERT INTO results VALUES ('deactivation moves the patient to another doctor, reason is kept',
+    EXISTS (SELECT 1 FROM appointments WHERE patient_id = 1 AND slot_id = new_slot AND status = 'booked' AND reason = 'test reason'));
+  BEGIN
+    PERFORM book_appointment(1, old_slot);
+    INSERT INTO results VALUES ('inactive doctor cannot be booked', false);
+  EXCEPTION WHEN SQLSTATE 'P0001' THEN
+    INSERT INTO results VALUES ('inactive doctor cannot be booked', true);
+  END;
+END $$;
 
 SELECT CASE WHEN ok THEN 'PASS' ELSE 'FAIL' END AS result, name FROM results ORDER BY ok, name;
 SELECT count(*) FILTER (WHERE ok) AS passed, count(*) FILTER (WHERE NOT ok) AS failed FROM results;

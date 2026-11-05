@@ -7,8 +7,22 @@ Python 3.12+, Node.js 20+, Angular CLI (`npm install -g @angular/cli`), PostgreS
 
 ## 1. Database
 1. Create an empty database `clinic` (DataGrip or `psql -U postgres -c "CREATE DATABASE clinic"`).
-2. Run in `clinic`, in this order: `database/01_schema.sql`, `database/02_functions_views.sql`, `database/04_seed.sql`.
-   (`03_roles.sql` is not used, we connect as `postgres`.)
+2. Run in `clinic`, strictly in this order (each file as a whole script):
+   `database/01_schema.sql`, `database/02_functions_views.sql`, `database/03_roles.sql` (optional), `database/04_seed.sql`.
+   The app connects as `postgres`, so `03_roles.sql` is not required, but it must run after `02` if you use it.
+3. Check: run `database/99_tests.sql`. It must end with `failed = 0`. Test data is rolled back.
+4. Already have a database from an older version? Do not patch it: drop `clinic` and repeat steps 1-3.
+   (`database/05_migration_phone_reason.sql` exists only for databases created before the phone/reason change.)
+
+What the database does by itself:
+- **Weekly schedules:** `weekly_schedules` holds one working period and an optional lunch break per doctor and weekday
+  (Monday = 1 ... Sunday = 7). `generate_slots(from, to, slot_minutes)` creates `time_slots` from it; it skips lunch,
+  inactive doctors and slots that already exist, so it is safe to run again.
+- **Doctor deactivation:** doctors are never deleted, `is_active` is set to false. A trigger then cancels the doctor's
+  future booked appointments and moves each patient to another active doctor of the same specialty (earliest slot, not
+  earlier than the original one). If there is no such slot, the old booking stays cancelled. Past and completed
+  appointments are kept. Booking an inactive doctor is rejected. Patients are not notified yet.
+- **Phone:** stored as `+` and digits (E.164); the country is chosen from `phone_countries` and the length is checked per country.
 
 ## 2. Backend
 ```
@@ -29,6 +43,13 @@ npm install
 ng serve
 ```
 Open http://localhost:4200 - you should see the list of doctors.
+
+## Task 10: who did what
+- Weekly doctor schedules with lunch break and slot generation (`weekly_schedules`, `generate_slots`) - Gulsezim
+- Doctor deactivation with automatic rebooking - Zhanerke
+- Phone with country selection and longer appointment reason - Amina
+- Automatic refresh of the doctors list and free slots (every 30 seconds) - Altynai
+- Role rules, README, merge of the above into one schema - Rostislav
 
 ## Rules
 - Do not commit passwords. Use `$env:DB_PASSWORD`.

@@ -6,9 +6,10 @@ from django.db import connection
 
 @api_view(['GET'])
 def doctors_list(request):
-    doctors = Doctors.objects.all()
+    doctors = Doctors.objects.filter(is_active=True)
     return Response(DoctorSerializer(doctors, many=True).data)
 
+# Task 10 - Altynai: free slots endpoint for the auto-refreshing slots page
 @api_view(['GET'])
 def free_slots_list(request):
     with connection.cursor() as cursor:
