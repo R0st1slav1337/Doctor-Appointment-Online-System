@@ -56,3 +56,4 @@ Open http://localhost:4200 - you should see the list of doctors.
 - Models use `managed = False`: the database is created by the SQL files in `database/`, not by Django.
   To change a table, change the SQL and tell the team.
 - Work in a branch (`git checkout -b feature/name`) and open a Pull Request into `main`.
+- Roles of the system: see [ROLES.md](ROLES.md).
