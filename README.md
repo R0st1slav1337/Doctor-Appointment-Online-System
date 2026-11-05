@@ -32,9 +32,11 @@ venv\Scripts\activate
 pip install -r requirements.txt
 $env:DB_PASSWORD="your_postgres_password" # replace with YOUR PostgreSQL password (the one you use in DataGrip)
 python manage.py migrate
+python manage.py setup_roles
 python manage.py runserver
 ```
 Check: http://127.0.0.1:8000/api/doctors/
+Demo logins (password `Clinic12345`): `a@mail.test` (patient), `a.nurtaeva@clinic.test` (doctor), `admin@clinic.test` (admin), `manager@clinic.test` (manager). Development only.
 
 ## 3. Frontend (second terminal)
 ```
