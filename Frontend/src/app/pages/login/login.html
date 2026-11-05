@@ -1,0 +1,22 @@
+<h1>Login</h1>
+
+<form (ngSubmit)="submit()">
+  <p>
+    <label>Email<br>
+      <input type="email" name="email" [(ngModel)]="email" required>
+    </label>
+  </p>
+  <p>
+    <label>Password<br>
+      <input type="password" name="password" [(ngModel)]="password" required>
+    </label>
+  </p>
+
+  @if (errorMessage()) {
+    <p class="error">{{ errorMessage() }}</p>
+  }
+
+  <button type="submit" [disabled]="loading()">Log in</button>
+</form>
+
+<p class="hint">Test accounts (password Clinic12345): a@mail.test, a.nurtaeva@clinic.test, admin@clinic.test, manager@clinic.test</p>

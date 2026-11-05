@@ -1,6 +1,13 @@
-<h1>Doctors</h1>
-<ul>
-  @for (d of doctors(); track d.doctor_id) {
-    <li>{{ d.full_name }} — {{ d.consultation_fee_kzt }} ₸</li>
+<nav>
+  <a routerLink="/">Doctors</a>
+  <a routerLink="/free-slots">Free Slots</a>
+  @if (auth.isLoggedIn()) {
+    <a routerLink="/me">Profile</a>
+    <span class="user">{{ auth.email() }} ({{ auth.role() }})</span>
+    <button type="button" (click)="logout()">Log out</button>
+  } @else {
+    <a routerLink="/login" class="user">Log in</a>
   }
-</ul>
+</nav>
+<hr>
+<router-outlet />

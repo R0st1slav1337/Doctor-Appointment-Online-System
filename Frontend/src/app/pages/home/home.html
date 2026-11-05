@@ -1,7 +1,7 @@
-<h1>Врачи</h1>
+<h1>Doctors</h1>
 
 @if (lastUpdated(); as updated) {
-  <p>Список обновлён: {{ updated | date:'HH:mm:ss' }}</p>
+  <p>Doctor list updated: {{ updated | date:'HH:mm:ss' }}</p>
 }
 
 @if (errorMessage()) {
@@ -9,7 +9,7 @@
 }
 
 @if (doctors().length === 0 && !errorMessage()) {
-  <p>Врачей пока нет.</p>
+  <p>No doctors available.</p>
 }
 
 <ul>
@@ -21,7 +21,7 @@
       <a
         [routerLink]="['/free-slots']"
         [queryParams]="{ doctorId: doctor.doctor_id }">
-        Посмотреть свободные слоты
+        View Free Slots
       </a>
     </li>
   }
