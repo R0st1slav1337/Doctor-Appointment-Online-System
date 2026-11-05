@@ -1,0 +1,28 @@
+<h1>Врачи</h1>
+
+@if (lastUpdated(); as updated) {
+  <p>Список обновлён: {{ updated | date:'HH:mm:ss' }}</p>
+}
+
+@if (errorMessage()) {
+  <p class="error">{{ errorMessage() }}</p>
+}
+
+@if (doctors().length === 0 && !errorMessage()) {
+  <p>Врачей пока нет.</p>
+}
+
+<ul>
+  @for (doctor of doctors(); track doctor.doctor_id) {
+    <li>
+      <strong>{{ doctor.full_name }}</strong>
+      — {{ doctor.consultation_fee_kzt }} ₸
+
+      <a
+        [routerLink]="['/free-slots']"
+        [queryParams]="{ doctorId: doctor.doctor_id }">
+        Посмотреть свободные слоты
+      </a>
+    </li>
+  }
+</ul>

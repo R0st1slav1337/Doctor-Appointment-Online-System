@@ -8,4 +8,7 @@ export class DoctorService {
   getDoctors() {
     return this.http.get<any[]>('http://127.0.0.1:8000/api/doctors/');
   }
+  getFreeSlots() {
+  return this.http.get<any[]>('http://127.0.0.1:8000/api/free-slots/');
+}
 }
