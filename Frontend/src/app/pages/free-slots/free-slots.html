@@ -1,9 +1,9 @@
-<h1>Свободные слоты</h1>
+<h1>Free Slots</h1>
 
-<p><a routerLink="/">← Вернуться к списку врачей</a></p>
+<p><a routerLink="/">← Back to Doctor List</a></p>
 
 @if (lastUpdated(); as updated) {
-  <p>Список обновлён: {{ updated | date:'HH:mm:ss' }}</p>
+  <p>Free slot list updated: {{ updated | date:'HH:mm:ss' }}</p>
 }
 
 @if (errorMessage()) {
@@ -11,7 +11,7 @@
 }
 
 @if (freeSlots().length === 0 && !errorMessage()) {
-  <p>Свободных слотов сейчас нет.</p>
+  <p>No free slots available.</p>
 }
 
 <ul>
@@ -19,7 +19,7 @@
     <li>
       {{ slot.doctor_name }} — {{ slot.specialty }}:
       {{ slot.slot_date }} {{ slot.start_time }}
-      (до {{ slot.end_time }})
+      (until {{ slot.end_time }})
     </li>
   }
 </ul>
