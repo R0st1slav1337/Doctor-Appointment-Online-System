@@ -19,6 +19,11 @@ INSERT INTO patients(full_name, email, phone, birth_date, password_hash) VALUES
  ('Test Patient C','c@mail.test','+77010000003','1988-11-23','placeholder'),
  ('Test Patient D','d@mail.test','+77010000004','2003-01-30','placeholder');
 
+-- patients with a non-Kazakhstan phone (country is chosen in the phone input)
+INSERT INTO patients(full_name, email, phone_country, phone, birth_date, password_hash) VALUES
+ ('Test Patient E','e@mail.test','UZ','+998901234567','1999-05-10','placeholder'),
+ ('Test Patient F','f@mail.test','KG','+996555123456','1992-09-18','placeholder');
+
 -- Task 10 - Gulsezim
 -- Weekly schedules for three doctors.
 -- Monday = 1, Friday = 5.

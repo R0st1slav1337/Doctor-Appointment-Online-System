@@ -170,3 +170,37 @@ BEGIN
     RETURN v_created;
 END;
 $$;
+
+-- Phone check: the number must start with '+<dial_code>' of the selected country
+-- and the national part must have the right length for that country.
+-- The frontend sends phone already normalized: '+' and digits only (+77011234567).
+CREATE OR REPLACE FUNCTION check_patient_phone()
+RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE
+    c        phone_countries%ROWTYPE;
+    national text;
+BEGIN
+    SELECT * INTO c FROM phone_countries WHERE country_code = NEW.phone_country;
+    IF NOT FOUND OR NOT c.is_active THEN
+        RAISE EXCEPTION 'Страна % недоступна для номера телефона', NEW.phone_country
+              USING ERRCODE = '23514';
+    END IF;
+
+    IF NEW.phone NOT LIKE '+' || c.dial_code || '%' THEN
+        RAISE EXCEPTION 'Номер % должен начинаться с +% (%)', NEW.phone, c.dial_code, c.name
+              USING ERRCODE = '23514';
+    END IF;
+
+    national := substr(NEW.phone, length(c.dial_code) + 2);
+    IF length(national) NOT BETWEEN c.min_digits AND c.max_digits THEN
+        RAISE EXCEPTION 'Для страны % номер без кода должен содержать от % до % цифр, получено %',
+              c.name, c.min_digits, c.max_digits, length(national)
+              USING ERRCODE = '23514';
+    END IF;
+    RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS trg_patients_phone ON patients;
+CREATE TRIGGER trg_patients_phone
+    BEFORE INSERT OR UPDATE OF phone, phone_country ON patients
+    FOR EACH ROW EXECUTE FUNCTION check_patient_phone();

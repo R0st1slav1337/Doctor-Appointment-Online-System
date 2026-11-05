@@ -23,6 +23,27 @@ SELECT pg_temp.expect_error('duplicate e-mail (any case) is rejected',
   'INSERT INTO patients(full_name,email,phone,birth_date,password_hash) VALUES (''x'',''A@MAIL.TEST'',''+77010000009'',''2000-01-01'',''h'')','23505');
 SELECT pg_temp.expect_error('bad phone is rejected',
   'INSERT INTO patients(full_name,email,phone,birth_date,password_hash) VALUES (''x'',''z@mail.test'',''abc'',''2000-01-01'',''h'')','23514');
+SELECT pg_temp.expect_error('phone without + is rejected',
+  'INSERT INTO patients(full_name,email,phone,birth_date,password_hash) VALUES (''x'',''p1@mail.test'',''77010000011'',''2000-01-01'',''h'')','23514');
+SELECT pg_temp.expect_error('KZ phone with wrong length is rejected',
+  'INSERT INTO patients(full_name,email,phone_country,phone,birth_date,password_hash) VALUES (''x'',''p2@mail.test'',''KZ'',''+770100000'',''2000-01-01'',''h'')','23514');
+SELECT pg_temp.expect_error('phone code not matching country is rejected',
+  'INSERT INTO patients(full_name,email,phone_country,phone,birth_date,password_hash) VALUES (''x'',''p3@mail.test'',''UZ'',''+77010000012'',''2000-01-01'',''h'')','23514');
+SELECT pg_temp.expect_error('unknown phone country is rejected',
+  'INSERT INTO patients(full_name,email,phone_country,phone,birth_date,password_hash) VALUES (''x'',''p4@mail.test'',''XX'',''+77010000013'',''2000-01-01'',''h'')',NULL);
+SELECT pg_temp.expect_error('reason longer than 1000 chars is rejected',
+  'UPDATE appointments SET reason=repeat(''a'',1001) WHERE appointment_id=1','23514');
+DO $$ BEGIN
+  INSERT INTO patients(full_name,email,phone_country,phone,birth_date,password_hash)
+  VALUES ('x','p5@mail.test','UZ','+998935554433','2000-01-01','h');
+  INSERT INTO results VALUES ('Uzbek phone with UZ country is accepted', true);
+EXCEPTION WHEN OTHERS THEN INSERT INTO results VALUES ('Uzbek phone with UZ country is accepted', false);
+END $$;
+DO $$ BEGIN
+  UPDATE appointments SET reason=repeat('a',1000) WHERE appointment_id=1;
+  INSERT INTO results VALUES ('reason of 1000 chars is accepted', FOUND);
+EXCEPTION WHEN OTHERS THEN INSERT INTO results VALUES ('reason of 1000 chars is accepted', false);
+END $$;
 SELECT pg_temp.expect_error('future birth date is rejected',
   'INSERT INTO patients(full_name,email,phone,birth_date,password_hash) VALUES (''x'',''y@mail.test'',''+77010000008'',CURRENT_DATE+1,''h'')','23514');
 SELECT pg_temp.expect_error('negative fee is rejected',
