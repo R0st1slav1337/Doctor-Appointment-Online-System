@@ -1,17 +1,10 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
-import { DoctorService } from './services/DoctorService';
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  imports: [],
-  templateUrl: './app.html',
-  styleUrl: './app.css'
+  standalone: true,
+  imports: [RouterOutlet],
+  template: '<router-outlet />'
 })
-export class App implements OnInit {
-  private doctorService = inject(DoctorService);
-  doctors = signal<any[]>([]);
-
-  ngOnInit() {
-    this.doctorService.getDoctors().subscribe(data => this.doctors.set(data));
-  }
-}
+export class App {}
