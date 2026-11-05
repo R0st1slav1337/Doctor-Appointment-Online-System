@@ -31,6 +31,7 @@ CREATE TABLE doctors (
     is_active            boolean      NOT NULL DEFAULT true
 );
 
+-- Task 10 - Amina: phone with country selection and longer appointment reason (see check_patient_phone in 02)
 -- Countries for the phone input (dropdown on the frontend).
 -- dial_code = country calling code without '+'; min/max_digits = length of the national
 -- number WITHOUT the country code. example_mask is a hint for the input placeholder.

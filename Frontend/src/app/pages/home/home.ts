@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { EMPTY, Subscription, catchError, switchMap, tap, timer } from 'rxjs';
 import { DoctorService } from '../../services/DoctorService';
 import { DatePipe } from '@angular/common';
+// Task 10 - Altynai: data refreshes automatically every 30 seconds
 @Component({
   selector: 'app-home',
   standalone: true,
