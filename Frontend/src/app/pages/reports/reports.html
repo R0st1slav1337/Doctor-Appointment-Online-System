@@ -1,0 +1,26 @@
+<h1>Reports</h1>
+
+<h2>Doctor load (from today)</h2>
+<p class="hint">Read-only report: only numbers, no patient data.</p>
+
+@if (errorMessage()) {
+  <p class="error">{{ errorMessage() }}</p>
+}
+
+<table>
+  <thead>
+    <tr>
+      <th>Doctor</th><th>Booked</th><th>Total slots</th><th>Load</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (r of rows(); track r.doctor_id) {
+      <tr>
+        <td>{{ r.doctor_name }}</td>
+        <td>{{ r.booked_appointments }}</td>
+        <td>{{ r.total_slots }}</td>
+        <td>{{ percent(r) }}%</td>
+      </tr>
+    }
+  </tbody>
+</table>

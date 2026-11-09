@@ -3,10 +3,20 @@
   <a routerLink="/free-slots">Free Slots</a>
   @if (auth.isLoggedIn()) {
     <a routerLink="/me">Profile</a>
+    <!-- Links are shown by role for convenience only. The real protection is on the server (role_required). -->
+    @if (auth.role() === 'admin') {
+      <a routerLink="/admin/doctors">Manage doctors</a>
+    }
+    @if (auth.role() === 'admin' || auth.role() === 'manager') {
+      <a routerLink="/reports">Reports</a>
+    }
     <span class="user">{{ auth.email() }} ({{ auth.role() }})</span>
     <button type="button" (click)="logout()">Log out</button>
   } @else {
-    <a routerLink="/login" class="user">Log in</a>
+    <span class="user">
+      <a routerLink="/login">Log in</a>
+      <a routerLink="/register">Register</a>
+    </span>
   }
 </nav>
 <hr>

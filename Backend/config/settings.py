@@ -137,6 +137,8 @@ MAILERS = {
     },
 }
 
+# Login by token: the frontend sends "Authorization: Token <key>" (see authInterceptor in AuthService.ts).
+# The role of the user is checked in every protected view by role_required (api/roles.py).
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',

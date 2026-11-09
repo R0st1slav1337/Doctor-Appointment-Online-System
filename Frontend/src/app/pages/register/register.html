@@ -1,0 +1,59 @@
+<h1>Patient registration</h1>
+
+<form (ngSubmit)="submit()">
+  <p>
+    <label>Full name<br>
+      <input name="full_name" [(ngModel)]="fullName" maxlength="120" required>
+    </label>
+  </p>
+  <p>
+    <label>Email<br>
+      <input type="email" name="email" [(ngModel)]="email" required>
+    </label>
+  </p>
+  <p>
+    <label>Date of birth<br>
+      <input type="date" name="birth_date" [(ngModel)]="birthDate" min="1900-01-01" [max]="today" required>
+    </label>
+  </p>
+  <p>
+    <label>Phone country<br>
+      <select name="phone_country" [(ngModel)]="phoneCountry">
+        @for (c of countries(); track c.country_code) {
+          <option [value]="c.country_code">{{ c.name }} (+{{ c.dial_code }})</option>
+        }
+      </select>
+    </label>
+  </p>
+  <p>
+    <label>Phone number (without the country code)<br>
+      <input type="tel" name="phone" [(ngModel)]="phone" required>
+    </label>
+    @if (selectedCountry(); as c) {
+      <br>
+      <small class="hint">
+        {{ c.min_digits === c.max_digits ? c.min_digits : c.min_digits + '-' + c.max_digits }} digits{{ c.example_mask ? ', for example ' + c.example_mask : '' }}
+      </small>
+    }
+  </p>
+  <p>
+    <label>Password<br>
+      <input type="password" name="password" [(ngModel)]="password" minlength="8" required>
+    </label>
+    <br>
+    <small class="hint">At least 8 characters, not only digits, not a common password.</small>
+  </p>
+  <p>
+    <label>Repeat password<br>
+      <input type="password" name="password2" [(ngModel)]="password2" required>
+    </label>
+  </p>
+
+  @if (errorMessage()) {
+    <p class="error">{{ errorMessage() }}</p>
+  }
+
+  <button type="submit" [disabled]="loading()">Register</button>
+</form>
+
+<p>Already have an account? <a routerLink="/login">Log in</a></p>
