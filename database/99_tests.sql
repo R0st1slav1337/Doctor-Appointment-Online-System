@@ -21,6 +21,8 @@ SELECT pg_temp.expect_error('overlapping slots are rejected',
   'INSERT INTO time_slots(doctor_id,slot_date,start_time,end_time) SELECT doctor_id,slot_date,start_time+interval ''10 minutes'',end_time FROM time_slots LIMIT 1','23P01');
 SELECT pg_temp.expect_error('duplicate e-mail (any case) is rejected',
   'INSERT INTO patients(full_name,email,phone,birth_date,password_hash) VALUES (''x'',''A@MAIL.TEST'',''+77010000009'',''2000-01-01'',''h'')','23505');
+SELECT pg_temp.expect_error('duplicate phone is rejected',
+  'INSERT INTO patients(full_name,email,phone,birth_date,password_hash) VALUES (''x'',''dup@mail.test'',''+77010000001'',''2000-01-01'',''h'')','23505');
 SELECT pg_temp.expect_error('bad phone is rejected',
   'INSERT INTO patients(full_name,email,phone,birth_date,password_hash) VALUES (''x'',''z@mail.test'',''abc'',''2000-01-01'',''h'')','23514');
 -- Task 10 - Amina: phone country and reason length tests

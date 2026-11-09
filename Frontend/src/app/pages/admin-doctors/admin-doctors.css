@@ -1,0 +1,22 @@
+.error {
+  color: #b42318;
+}
+
+.success {
+  color: #067647;
+}
+
+.hint {
+  color: #667085;
+  font-size: 0.85rem;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 0.3rem 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid #d0d5dd;
+}

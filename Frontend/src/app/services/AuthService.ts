@@ -5,11 +5,28 @@ import { tap } from 'rxjs';
 
 const API = 'http://127.0.0.1:8000/api';
 
+export interface Session {
+  token: string;
+  email: string;
+  role: string;
+}
+
+export interface RegisterForm {
+  full_name: string;
+  email: string;
+  birth_date: string;
+  phone_country: string;
+  phone: string;
+  password: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private http = inject(HttpClient);
 
   // the login survives a page refresh because it is kept in localStorage
+  // The role is saved only to show the right menu and to close pages (roleGuard).
+  // It is not security: the server checks the role of the token on every request.
   token = signal<string | null>(localStorage.getItem('token'));
   email = signal<string | null>(localStorage.getItem('email'));
   role = signal<string | null>(localStorage.getItem('role'));
@@ -18,19 +35,26 @@ export class AuthService {
     return this.token() !== null;
   }
 
+  private saveSession(res: Session) {
+    localStorage.setItem('token', res.token);
+    localStorage.setItem('email', res.email);
+    localStorage.setItem('role', res.role);
+    this.token.set(res.token);
+    this.email.set(res.email);
+    this.role.set(res.role);
+  }
+
   login(email: string, password: string) {
     return this.http
-      .post<{ token: string; email: string; role: string }>(`${API}/login/`, { email, password })
-      .pipe(
-        tap((res) => {
-          localStorage.setItem('token', res.token);
-          localStorage.setItem('email', res.email);
-          localStorage.setItem('role', res.role);
-          this.token.set(res.token);
-          this.email.set(res.email);
-          this.role.set(res.role);
-        })
-      );
+      .post<Session>(`${API}/login/`, { email, password })
+      .pipe(tap((res) => this.saveSession(res)));
+  }
+
+  // Patient registration. The user is logged in right after it.
+  register(form: RegisterForm) {
+    return this.http
+      .post<Session>(`${API}/register/`, form)
+      .pipe(tap((res) => this.saveSession(res)));
   }
 
   logout() {

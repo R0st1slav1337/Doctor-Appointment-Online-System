@@ -29,3 +29,16 @@ Rules:
 - Before saving, the system checks that Patient ID, Doctor ID and Slot start are filled and valid, the slot is free, and there is no duplicate.
 - Nothing is deleted: doctors are deactivated, appointments get the status `cancelled`.
 - The role is checked in the backend on every request.
+
+
+## How accounts are created
+| Role | How the account is created |
+|---|---|
+| Patient | Registers on the site. The role is set by the server and cannot be chosen. |
+| Doctor | Added by the administrator on the site ("Manage doctors"); the doctor gets a default weekly schedule. |
+| Administrator, Manager | Only by the server administrator in the console: `python manage.py create_staff <email> <admin or manager>`. There is no way to create them from the site or the API. |
+
+Limits (checked in the backend on every request, covered by `python manage.py test`):
+- Patient, doctor and manager cannot use administrator functions (403); a visitor without login gets 401.
+- Manager is read-only: sees the doctor load report (numbers only, no patient data and no reasons for the visit) and nothing that changes data.
+- The role is assigned only by the server: a registration request with a `role` field is ignored.

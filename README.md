@@ -37,6 +37,7 @@ python manage.py runserver
 ```
 Check: http://127.0.0.1:8000/api/doctors/
 Demo logins (password `Clinic12345`): `a@mail.test` (patient), `a.nurtaeva@clinic.test` (doctor), `admin@clinic.test` (admin), `manager@clinic.test` (manager). Development only.
+To create a new admin or manager, run `python manage.py create_staff`.
 
 ## 3. Frontend (second terminal)
 ```

@@ -1,0 +1,73 @@
+<h1>Manage doctors</h1>
+
+<h2>Add a doctor</h2>
+<form (ngSubmit)="submit()">
+  <p>
+    <label>Full name<br>
+      <input name="full_name" [(ngModel)]="fullName" maxlength="120" required>
+    </label>
+  </p>
+  <p>
+    <label>Email (the doctor logs in with it)<br>
+      <input type="email" name="email" [(ngModel)]="email" required>
+    </label>
+  </p>
+  <p>
+    <label>Specialty<br>
+      <select name="specialty_id" [(ngModel)]="specialtyId" required>
+        <option [ngValue]="null" disabled>Choose a specialty</option>
+        @for (s of specialties(); track s.specialty_id) {
+          <option [ngValue]="s.specialty_id">{{ s.name }}</option>
+        }
+      </select>
+    </label>
+  </p>
+  <p>
+    <label>Room number (optional)<br>
+      <input name="room_number" [(ngModel)]="room" maxlength="10">
+    </label>
+  </p>
+  <p>
+    <label>Consultation fee, KZT<br>
+      <input type="number" name="fee" [(ngModel)]="fee" min="0" max="200000" required>
+    </label>
+  </p>
+  <p>
+    <label>Initial password<br>
+      <input type="password" name="password" [(ngModel)]="password" minlength="8" required>
+    </label>
+    <br>
+    <small class="hint">At least 8 characters, not only digits. Give it to the doctor.</small>
+  </p>
+
+  @if (errorMessage()) {
+    <p class="error">{{ errorMessage() }}</p>
+  }
+  @if (successMessage()) {
+    <p class="success">{{ successMessage() }}</p>
+  }
+
+  <button type="submit" [disabled]="loading()">Add doctor</button>
+</form>
+
+<h2>All doctors</h2>
+<table>
+  <thead>
+    <tr>
+      <th>ID</th><th>Name</th><th>Specialty</th><th>Email</th><th>Room</th><th>Fee, ₸</th><th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (d of doctors(); track d.doctor_id) {
+      <tr>
+        <td>{{ d.doctor_id }}</td>
+        <td>{{ d.full_name }}</td>
+        <td>{{ d.specialty }}</td>
+        <td>{{ d.email }}</td>
+        <td>{{ d.room_number ?? '-' }}</td>
+        <td>{{ d.consultation_fee_kzt }}</td>
+        <td>{{ d.is_active ? 'active' : 'inactive' }}</td>
+      </tr>
+    }
+  </tbody>
+</table>

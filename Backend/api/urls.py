@@ -1,10 +1,15 @@
 from django.urls import path
-from .views import doctors_list, free_slots_list, login, me, admin_check
+from .views import doctors_list, free_slots_list, login, me, admin_check, register, phone_countries_list, specialties_list, admin_doctors, doctor_load_report
 
 urlpatterns = [
     path('doctors/', doctors_list),
     path('free-slots/', free_slots_list),
     path('login/', login),
+    path('register/', register),
+    path('phone-countries/', phone_countries_list),
     path('me/', me),
     path('admin-check/', admin_check),
+    path('specialties/', specialties_list),
+    path('admin/doctors/', admin_doctors),
+    path('reports/doctor-load/', doctor_load_report),
 ]
