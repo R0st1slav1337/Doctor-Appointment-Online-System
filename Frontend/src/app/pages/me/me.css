@@ -1,0 +1,92 @@
+section {
+  margin-bottom: 2rem;
+  max-width: 56rem;
+}
+
+.contacts {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  gap: 0.5rem 1rem;
+}
+
+.contacts dt {
+  color: #667085;
+}
+
+.contacts dd {
+  margin: 0;
+}
+
+.flag {
+  font-size: 1.1rem;
+}
+
+.phone-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.dial {
+  font-weight: 600;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  border-bottom: 1px solid #eaecf0;
+  padding: 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+/* the reason can be up to 1000 characters: keep the line breaks and wrap long text */
+td.reason {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: 24rem;
+}
+
+tr.cancelled {
+  color: #98a2b3;
+}
+
+.password-form {
+  display: grid;
+  gap: 0.6rem;
+  max-width: 20rem;
+}
+
+.password-form button {
+  justify-self: start;
+}
+
+.password-form label {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.muted {
+  color: #667085;
+}
+
+.ok {
+  color: #067647;
+}
+
+.error {
+  color: #b42318;
+}
+
+button.link {
+  background: none;
+  border: none;
+  color: #175cd3;
+  cursor: pointer;
+  padding: 0 0.4rem;
+}

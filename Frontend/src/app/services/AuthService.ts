@@ -24,9 +24,6 @@ export interface RegisterForm {
 export class AuthService {
   private http = inject(HttpClient);
 
-  // the login survives a page refresh because it is kept in localStorage
-  // The role is saved only to show the right menu and to close pages (roleGuard).
-  // It is not security: the server checks the role of the token on every request.
   token = signal<string | null>(localStorage.getItem('token'));
   email = signal<string | null>(localStorage.getItem('email'));
   role = signal<string | null>(localStorage.getItem('role'));
@@ -50,7 +47,6 @@ export class AuthService {
       .pipe(tap((res) => this.saveSession(res)));
   }
 
-  // Patient registration. The user is logged in right after it.
   register(form: RegisterForm) {
     return this.http
       .post<Session>(`${API}/register/`, form)
@@ -58,6 +54,22 @@ export class AuthService {
   }
 
   logout() {
+    const token = this.token();
+    if (token) {
+      this.http
+        .post(`${API}/logout/`, {}, { headers: { Authorization: `Token ${token}` } })
+        .subscribe({ error: () => {} });
+    }
+    this.clearSession();
+  }
+
+  changePassword(oldPassword: string, newPassword: string) {
+    return this.http
+      .post<Session>(`${API}/me/password/`, { old_password: oldPassword, new_password: newPassword })
+      .pipe(tap((res) => this.saveSession(res)));
+  }
+
+  clearSession() {
     localStorage.removeItem('token');
     localStorage.removeItem('email');
     localStorage.removeItem('role');

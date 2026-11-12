@@ -21,10 +21,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-cxaa9ncevn*&dvq4nme+w*!%(&g$7nv^tn-=^(6y7p6y7%q0mi'
+# Task 11 - Amina: secrets are read from environment variables, like DB_PASSWORD.
+# The fallback key is for local development only; on a real server set DJANGO_SECRET_KEY.
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-cxaa9ncevn*&dvq4nme+w*!%(&g$7nv^tn-=^(6y7p6y7%q0mi',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', '1') == '1'   # set DJANGO_DEBUG=0 on a real server
 
 ALLOWED_HOSTS = []
 
@@ -81,11 +86,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'clinic',
+        'NAME': os.environ.get('DB_NAME', 'clinic'),
         'USER': 'postgres',
         'PASSWORD': os.environ.get('DB_PASSWORD', ''),   # тот же пароль, что и в DataGrip на вашем компьютере
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
@@ -100,6 +105,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': 8},
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -107,6 +113,19 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
+]
+
+
+# Task 11 - Amina: password storage.
+# The password itself is never stored, only a hash with a random salt. Argon2id is the first (main) algorithm:
+# it is slow and memory-hard on purpose, so guessing passwords from a stolen hash takes very long.
+# The other hashers stay only to CHECK old hashes; Django re-hashes an old PBKDF2 password with Argon2
+# automatically the next time the user logs in. Needs the package argon2-cffi (requirements.txt).
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+    'django.contrib.auth.hashers.ScryptPasswordHasher',
 ]
 
 
@@ -143,4 +162,11 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
+    # Task 11 - Amina: limit of attempts per IP address (see api/throttles.py) against password guessing.
+    # Over the limit the server answers 429 Too Many Requests.
+    'DEFAULT_THROTTLE_RATES': {
+        'login': '5/min',
+        'register': '5/hour',
+        'password_change': '5/hour',
+    },
 }

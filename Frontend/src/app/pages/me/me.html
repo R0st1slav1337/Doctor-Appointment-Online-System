@@ -1,0 +1,97 @@
+<h1>My Profile</h1>
+
+@if (profile(); as p) {
+  <section>
+    <h2>Account</h2>
+    <p>Email (login): {{ p.email }}</p>
+    <p>Role: {{ p.role }}</p>
+    @if (p.doctor; as d) {
+      <p>{{ d.full_name }} &middot; {{ d.specialty }}{{ d.room_number ? ' · room ' + d.room_number : '' }}</p>
+    }
+  </section>
+
+  @if (contacts(); as c) {
+    <section>
+      <h2>Contacts</h2>
+      <dl class="contacts">
+        <dt>Full name</dt>
+        <dd>{{ c.full_name }}</dd>
+        <dt>Email</dt>
+        <dd>{{ c.email }}</dd>
+        <dt>Phone</dt>
+        <dd>
+          @if (!editingPhone()) {
+            <span class="flag">{{ phones.flag(c.phone_country.country_code) }}</span>
+            {{ phoneText(c) }} <span class="muted">({{ c.phone_country.name }})</span>
+            <button type="button" class="link" (click)="startEditPhone()">Change</button>
+            @if (phoneSaved()) { <span class="ok">Saved</span> }
+          } @else {
+            <form class="phone-row" (ngSubmit)="savePhone()">
+              <select name="edit_country" [(ngModel)]="editCountry" aria-label="Phone country">
+                @for (k of countries(); track k.country_code) {
+                  <option [value]="k.country_code">{{ phones.flag(k.country_code) }} {{ k.name }} +{{ k.dial_code }}</option>
+                }
+              </select>
+              <span class="dial">+{{ editCountryObj()?.dial_code }}</span>
+              <input name="edit_phone" type="tel" inputmode="numeric" [(ngModel)]="editPhone" required>
+              <button type="submit">Save</button>
+              <button type="button" (click)="editingPhone.set(false)">Cancel</button>
+            </form>
+            @if (editCountryObj(); as k) {
+              <small class="muted">{{ phones.digits(editPhone).length }} / {{ phones.lengthText(k) }} digits
+                @if (editPhone) { &middot; {{ phones.format(k, editPhone) }} }</small>
+            }
+            @if (phoneError()) { <p class="error">{{ phoneError() }}</p> }
+          }
+        </dd>
+        <dt>Date of birth</dt>
+        <dd>{{ c.birth_date | date: 'dd.MM.yyyy' }}</dd>
+      </dl>
+    </section>
+
+    <section>
+      <h2>My appointments</h2>
+      @if (appointments().length === 0) {
+        <p class="muted">You have no appointments yet.</p>
+      } @else {
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Time</th><th>Doctor</th><th>Status</th><th>Reason for the visit</th></tr>
+          </thead>
+          <tbody>
+            @for (a of appointments(); track a.appointment_id) {
+              <tr [class.cancelled]="a.status === 'cancelled'">
+                <td>{{ a.slot_date | date: 'dd.MM.yyyy' }}</td>
+                <td>{{ a.start_time.slice(0, 5) }}–{{ a.end_time.slice(0, 5) }}</td>
+                <td>{{ a.doctor_name }}<br><small class="muted">{{ a.specialty }}{{ a.room_number ? ', room ' + a.room_number : '' }}</small></td>
+                <td>{{ a.status }}</td>
+                <td class="reason">{{ a.reason || '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+  }
+
+  <section>
+    <h2>Change password</h2>
+    <form class="password-form" (ngSubmit)="changePassword()">
+      <label>Current password
+        <input type="password" name="old_password" [(ngModel)]="oldPassword" autocomplete="current-password" required>
+      </label>
+      <label>New password
+        <input type="password" name="new_password" [(ngModel)]="newPassword" minlength="8" autocomplete="new-password" required>
+      </label>
+      <label>Repeat new password
+        <input type="password" name="new_password2" [(ngModel)]="newPassword2" autocomplete="new-password" required>
+      </label>
+      <small class="muted">After the change you stay logged in here; other devices are logged out.</small>
+      @if (passwordError()) { <p class="error">{{ passwordError() }}</p> }
+      @if (passwordSaved()) { <p class="ok">Password changed.</p> }
+      <button type="submit" [disabled]="savingPassword()">Change password</button>
+    </form>
+  </section>
+} @else {
+  <p>Loading...</p>
+}

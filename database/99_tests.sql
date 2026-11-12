@@ -20,35 +20,40 @@ SELECT pg_temp.expect_error('end before start is rejected',
 SELECT pg_temp.expect_error('overlapping slots are rejected',
   'INSERT INTO time_slots(doctor_id,slot_date,start_time,end_time) SELECT doctor_id,slot_date,start_time+interval ''10 minutes'',end_time FROM time_slots LIMIT 1','23P01');
 SELECT pg_temp.expect_error('duplicate e-mail (any case) is rejected',
-  'INSERT INTO patients(full_name,email,phone,birth_date,password_hash) VALUES (''x'',''A@MAIL.TEST'',''+77010000009'',''2000-01-01'',''h'')','23505');
+  'INSERT INTO patients(full_name,email,phone,birth_date) VALUES (''x'',''A@MAIL.TEST'',''+77010000009'',''2000-01-01'')','23505');
 SELECT pg_temp.expect_error('duplicate phone is rejected',
-  'INSERT INTO patients(full_name,email,phone,birth_date,password_hash) VALUES (''x'',''dup@mail.test'',''+77010000001'',''2000-01-01'',''h'')','23505');
+  'INSERT INTO patients(full_name,email,phone,birth_date) VALUES (''x'',''dup@mail.test'',''+77010000001'',''2000-01-01'')','23505');
 SELECT pg_temp.expect_error('bad phone is rejected',
-  'INSERT INTO patients(full_name,email,phone,birth_date,password_hash) VALUES (''x'',''z@mail.test'',''abc'',''2000-01-01'',''h'')','23514');
+  'INSERT INTO patients(full_name,email,phone,birth_date) VALUES (''x'',''z@mail.test'',''abc'',''2000-01-01'')','23514');
 -- Task 10 - Amina: phone country and reason length tests
 SELECT pg_temp.expect_error('phone without + is rejected',
-  'INSERT INTO patients(full_name,email,phone,birth_date,password_hash) VALUES (''x'',''p1@mail.test'',''77010000011'',''2000-01-01'',''h'')','23514');
+  'INSERT INTO patients(full_name,email,phone,birth_date) VALUES (''x'',''p1@mail.test'',''77010000011'',''2000-01-01'')','23514');
 SELECT pg_temp.expect_error('KZ phone with wrong length is rejected',
-  'INSERT INTO patients(full_name,email,phone_country,phone,birth_date,password_hash) VALUES (''x'',''p2@mail.test'',''KZ'',''+770100000'',''2000-01-01'',''h'')','23514');
+  'INSERT INTO patients(full_name,email,phone_country,phone,birth_date) VALUES (''x'',''p2@mail.test'',''KZ'',''+770100000'',''2000-01-01'')','23514');
 SELECT pg_temp.expect_error('phone code not matching country is rejected',
-  'INSERT INTO patients(full_name,email,phone_country,phone,birth_date,password_hash) VALUES (''x'',''p3@mail.test'',''UZ'',''+77010000012'',''2000-01-01'',''h'')','23514');
+  'INSERT INTO patients(full_name,email,phone_country,phone,birth_date) VALUES (''x'',''p3@mail.test'',''UZ'',''+77010000012'',''2000-01-01'')','23514');
 SELECT pg_temp.expect_error('unknown phone country is rejected',
-  'INSERT INTO patients(full_name,email,phone_country,phone,birth_date,password_hash) VALUES (''x'',''p4@mail.test'',''XX'',''+77010000013'',''2000-01-01'',''h'')',NULL);
+  'INSERT INTO patients(full_name,email,phone_country,phone,birth_date) VALUES (''x'',''p4@mail.test'',''XX'',''+77010000013'',''2000-01-01'')',NULL);
 SELECT pg_temp.expect_error('reason longer than 1000 chars is rejected',
   'UPDATE appointments SET reason=repeat(''a'',1001) WHERE appointment_id=1','23514');
 DO $$ BEGIN
-  INSERT INTO patients(full_name,email,phone_country,phone,birth_date,password_hash)
-  VALUES ('x','p5@mail.test','UZ','+998935554433','2000-01-01','h');
+  INSERT INTO patients(full_name,email,phone_country,phone,birth_date)
+  VALUES ('x','p5@mail.test','UZ','+998935554433','2000-01-01');
   INSERT INTO results VALUES ('Uzbek phone with UZ country is accepted', true);
 EXCEPTION WHEN OTHERS THEN INSERT INTO results VALUES ('Uzbek phone with UZ country is accepted', false);
 END $$;
+-- Task 11 - Amina: passwords are stored only in the Django login account (auth_user), never in clinic tables
+INSERT INTO results SELECT 'no password column in clinic tables',
+  NOT EXISTS (SELECT 1 FROM information_schema.columns
+              WHERE table_schema = 'public' AND column_name ILIKE '%password%'
+                AND table_name IN ('patients','doctors','appointments','specialties','time_slots','weekly_schedules'));
 DO $$ BEGIN
   UPDATE appointments SET reason=repeat('a',1000) WHERE appointment_id=1;
   INSERT INTO results VALUES ('reason of 1000 chars is accepted', FOUND);
 EXCEPTION WHEN OTHERS THEN INSERT INTO results VALUES ('reason of 1000 chars is accepted', false);
 END $$;
 SELECT pg_temp.expect_error('future birth date is rejected',
-  'INSERT INTO patients(full_name,email,phone,birth_date,password_hash) VALUES (''x'',''y@mail.test'',''+77010000008'',CURRENT_DATE+1,''h'')','23514');
+  'INSERT INTO patients(full_name,email,phone,birth_date) VALUES (''x'',''y@mail.test'',''+77010000008'',CURRENT_DATE+1)','23514');
 SELECT pg_temp.expect_error('negative fee is rejected',
   'INSERT INTO doctors(specialty_id,full_name,email,consultation_fee_kzt) VALUES (1,''n'',''n@x.test'',-5)','23514');
 SELECT pg_temp.expect_error('deleting a patient with appointments is rejected',
