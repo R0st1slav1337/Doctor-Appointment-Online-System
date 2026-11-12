@@ -525,9 +525,36 @@ def cancel_my_appointment(request):
     try:
         with transaction.atomic():
             with connection.cursor() as cursor:
-                cursor.execute('SELECT cancel_appointment(%s, %s)', [appointment_id, patient.patient_id])
+                cursor.execute(
+                    'SELECT cancel_appointment(%s, %s)',
+                    [appointment_id, patient.patient_id]
+                )
     except DatabaseError:
-        return Response({'detail': 'This appointment is no longer active or does not belong to you.'}, status=409)
+        return Response(
+            {'detail': 'This appointment is no longer active or does not belong to you.'},
+            status=409
+        )
 
-    return Response({'appointment_id': appointment_id, 'status': 'cancelled',
-                     'detail': 'Your appointment was cancelled.'})
+    return Response({
+        'appointment_id': appointment_id,
+        'status': 'cancelled',
+        'detail': 'Your appointment was cancelled.'
+    })
+
+
+@api_view(['POST'])
+@role_required('admin')
+def deactivate_doctor(request, doctor_id):
+    with transaction.atomic():
+        doctor = Doctors.objects.select_for_update().filter(doctor_id=doctor_id).first()
+        if doctor is None:
+            return Response({'detail': 'Doctor not found'}, status=404)
+        if not doctor.is_active:
+            return Response({'detail': 'Doctor is already inactive'}, status=409)
+        doctor.is_active = False
+        doctor.save(update_fields=['is_active'])
+    return Response({
+        'doctor_id': doctor_id,
+        'is_active': False,
+        'detail': 'Doctor deactivated; future bookings processed by database trigger',
+    }, status=200)
