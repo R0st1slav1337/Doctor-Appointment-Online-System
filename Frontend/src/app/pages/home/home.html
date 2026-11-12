@@ -1,28 +1,108 @@
-<h1>Doctors</h1>
 
-@if (lastUpdated(); as updated) {
-  <p>Doctor list updated: {{ updated | date:'HH:mm:ss' }}</p>
-}
+<section class="hero">
+  <div class="hero-content">
+    <span class="eyebrow">ONLINE DOCTOR APPOINTMENT SYSTEM</span>
 
-@if (errorMessage()) {
-  <p class="error">{{ errorMessage() }}</p>
-}
+    <h1>Find the right doctor for you</h1>
 
-@if (doctors().length === 0 && !errorMessage()) {
-  <p>No doctors available.</p>
-}
+    <p>
+      Browse available doctors, check appointment times
+      and book your visit online.
+    </p>
 
-<ul>
-  @for (doctor of doctors(); track doctor.doctor_id) {
-    <li>
-      <strong>{{ doctor.full_name }}</strong>
-      — {{ doctor.consultation_fee_kzt }} ₸
-
-      <a
-        [routerLink]="['/free-slots']"
-        [queryParams]="{ doctorId: doctor.doctor_id }">
-        View Free Slots
+    <div class="hero-actions">
+      <a class="primary-button" href="#doctors">
+        Find a doctor
       </a>
-    </li>
+
+      <a class="secondary-button" routerLink="/login">
+        Log in
+      </a>
+    </div>
+  </div>
+
+  <div class="hero-info">
+    <div class="info-icon">+</div>
+    <h2>Healthcare made easier</h2>
+    <p>
+      Choose a doctor and find a convenient time
+      for your appointment.
+    </p>
+  </div>
+</section>
+
+<section class="features">
+  <div>
+    <span class="feature-icon">01</span>
+    <h3>Choose a doctor</h3>
+    <p>Browse the list of available specialists.</p>
+  </div>
+
+  <div>
+    <span class="feature-icon">02</span>
+    <h3>Check available times</h3>
+    <p>Find a suitable date and time for your visit.</p>
+  </div>
+
+  <div>
+    <span class="feature-icon">03</span>
+    <h3>Book online</h3>
+    <p>Continue to the appointment booking process.</p>
+  </div>
+</section>
+
+<section id="doctors" class="doctors-section">
+  <div class="section-heading">
+    <div>
+      <span class="eyebrow">OUR SPECIALISTS</span>
+      <h2>Available doctors</h2>
+      <p>Choose a doctor to view available appointment times.</p>
+    </div>
+
+    @if (lastUpdated(); as updated) {
+      <span class="updated">
+        Updated at {{ updated | date:'HH:mm:ss' }}
+      </span>
+    }
+  </div>
+
+  @if (errorMessage()) {
+    <div class="error-message" role="alert">
+      {{ errorMessage() }}
+    </div>
   }
-</ul>
+
+  @if (doctors().length === 0 && !errorMessage()) {
+    <div class="empty-message">
+      <h3>No doctors available</h3>
+      <p>The doctor list is currently empty.</p>
+    </div>
+  }
+
+  <div class="doctor-grid">
+    @for (doctor of doctors(); track doctor.doctor_id) {
+      <article class="doctor-card">
+        <div class="doctor-avatar">+</div>
+
+        <h3>{{ doctor.full_name }}</h3>
+
+        <p class="doctor-label">Medical specialist</p>
+
+        <div class="doctor-details">
+          <span>Consultation fee</span>
+
+          <strong>
+            {{ doctor.consultation_fee_kzt }} ₸
+          </strong>
+        </div>
+
+        <a
+          class="doctor-button"
+          [routerLink]="['/free-slots']"
+          [queryParams]="{ doctorId: doctor.doctor_id }">
+          View free slots
+        </a>
+      </article>
+    }
+  </div>
+</section>

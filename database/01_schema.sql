@@ -145,6 +145,29 @@ CREATE TABLE weekly_schedules (
         UNIQUE (doctor_id, day_of_week)
 );
 
+-- Task 11 - Gulsezim
+-- Doctor unavailability: vacation, sick leave, or day off.
+-- Dates are inclusive.
+
+CREATE TABLE doctor_unavailability (
+    unavailability_id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    doctor_id integer NOT NULL REFERENCES doctors(doctor_id),
+    start_date date NOT NULL,
+    end_date date NOT NULL,
+    reason varchar(20) NOT NULL
+        CHECK (reason IN ('vacation', 'sick_leave', 'day_off')),
+
+    CONSTRAINT doctor_unavailability_date_order
+        CHECK (end_date >= start_date),
+
+    CONSTRAINT doctor_unavailability_no_overlap
+        EXCLUDE USING gist (
+            doctor_id WITH =,
+            daterange(start_date, end_date, '[]') WITH &&
+        )
+);
+
+
 CREATE TABLE appointments (
     appointment_id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     patient_id     integer      NOT NULL REFERENCES patients(patient_id),

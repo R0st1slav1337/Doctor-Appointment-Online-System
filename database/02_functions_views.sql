@@ -1,3 +1,4 @@
+
 -- Business logic that the application calls. Keeps multi-step rules inside ONE transaction.
 -- Note on transactions: a PostgreSQL function runs inside the caller's transaction and cannot
 -- contain COMMIT/ROLLBACK itself. If the function finishes, the caller's COMMIT saves everything;
@@ -10,9 +11,21 @@ SELECT t.slot_id, t.doctor_id, d.full_name AS doctor_name, s.specialty_id, s.nam
 FROM time_slots t
 JOIN doctors d     ON d.doctor_id = t.doctor_id AND d.is_active
 JOIN specialties s ON s.specialty_id = d.specialty_id AND s.is_active
+
 WHERE (t.slot_date + t.start_time) > now()
-  AND NOT EXISTS (SELECT 1 FROM appointments a
-                  WHERE a.slot_id = t.slot_id AND a.status IN ('booked', 'completed'));
+  AND NOT EXISTS (
+      SELECT 1
+      FROM appointments a
+      WHERE a.slot_id = t.slot_id
+        AND a.status IN ('booked', 'completed')
+  )
+  AND NOT EXISTS (
+      SELECT 1
+      FROM doctor_unavailability du
+      WHERE du.doctor_id = t.doctor_id
+        AND t.slot_date BETWEEN du.start_date AND du.end_date
+  );
+
 
 -- Doctor load: active bookings per doctor per day (for the manager's decision).
 CREATE OR REPLACE VIEW v_doctor_load AS
@@ -46,6 +59,17 @@ BEGIN
     SELECT slot_date + start_time INTO v_start FROM time_slots WHERE slot_id = p_slot_id FOR UPDATE;
     IF v_start <= now() THEN
         RAISE EXCEPTION 'Slot % is in the past', p_slot_id USING ERRCODE = 'P0001';
+    END IF;
+    -- Task 11 - Gulsezim: reject booking during doctor absence
+    IF EXISTS (
+        SELECT 1
+        FROM time_slots t
+        JOIN doctor_unavailability du ON du.doctor_id = t.doctor_id
+        WHERE t.slot_id = p_slot_id
+        AND t.slot_date BETWEEN du.start_date AND du.end_date
+    ) THEN
+        RAISE EXCEPTION 'Doctor is unavailable on this date'
+            USING ERRCODE = 'P0001';
     END IF;
     IF EXISTS (SELECT 1 FROM appointments WHERE slot_id = p_slot_id AND status IN ('booked','completed')) THEN
         RAISE EXCEPTION 'Slot % is already taken', p_slot_id USING ERRCODE = '23505';
@@ -128,7 +152,17 @@ BEGIN
                 interval '1 day'
             )::date
         LOOP
-            IF EXTRACT(ISODOW FROM v_date) = v_schedule.day_of_week THEN
+
+            -- Task 11 - Gulsezim
+            -- Skip vacation, sick leave, and days off.
+            IF EXTRACT(ISODOW FROM v_date) = v_schedule.day_of_week
+               AND NOT EXISTS (
+                   SELECT 1
+                   FROM doctor_unavailability du
+                   WHERE du.doctor_id = v_schedule.doctor_id
+                     AND v_date BETWEEN du.start_date AND du.end_date
+               )
+            THEN
 
                 v_start := v_date + v_schedule.start_time;
                 v_end := v_date + v_schedule.end_time;
@@ -256,7 +290,7 @@ BEGIN
                   WHERE existing.slot_id = candidate.slot_id
                     AND existing.status IN ('booked','completed')
               )
-            ORDER BY candidate.slot_date, 
+            ORDER BY candidate.slot_date,
                      CASE WHEN candidate.slot_date = old_booking.slot_date THEN 0 ELSE 1 END,
                      ABS(EXTRACT(EPOCH FROM (candidate.start_time - old_booking.start_time))),
                      candidate.start_time, candidate.slot_id
