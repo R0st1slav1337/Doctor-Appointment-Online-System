@@ -16,36 +16,43 @@
       <input type="date" name="birth_date" [(ngModel)]="birthDate" min="1900-01-01" [max]="today" required>
     </label>
   </p>
-  <p>
-    <label>Phone country<br>
-      <select name="phone_country" [(ngModel)]="phoneCountry">
+  <div class="phone-field">
+    <label for="phone">Phone number</label>
+    <div class="phone-row">
+      <select id="phone_country" name="phone_country" [(ngModel)]="phoneCountry" aria-label="Phone country">
         @for (c of countries(); track c.country_code) {
-          <option [value]="c.country_code">{{ c.name }} (+{{ c.dial_code }})</option>
+          <option [value]="c.country_code">{{ phones.flag(c.country_code) }} {{ c.name }} +{{ c.dial_code }}</option>
         }
       </select>
-    </label>
-  </p>
-  <p>
-    <label>Phone number (without the country code)<br>
-      <input type="tel" name="phone" [(ngModel)]="phone" required>
-    </label>
+      <span class="dial">+{{ selectedCountry()?.dial_code }}</span>
+      <input id="phone" type="tel" name="phone" [(ngModel)]="phone" inputmode="numeric" autocomplete="tel-national"
+             [placeholder]="placeholder()" required>
+    </div>
     @if (selectedCountry(); as c) {
-      <br>
-      <small class="hint">
-        {{ c.min_digits === c.max_digits ? c.min_digits : c.min_digits + '-' + c.max_digits }} digits{{ c.example_mask ? ', for example ' + c.example_mask : '' }}
+      <small class="hint" [class.ok]="phoneOk()">
+        {{ phones.digits(phone).length }} / {{ phones.lengthText(c) }} digits
+        @if (phone) { &middot; will be saved as <b>{{ phones.format(c, phone) }}</b> }
       </small>
     }
-  </p>
+  </div>
   <p>
     <label>Password<br>
-      <input type="password" name="password" [(ngModel)]="password" minlength="8" required>
+      <span class="pass-row">
+        <input [type]="showPassword() ? 'text' : 'password'" name="password" [(ngModel)]="password"
+               minlength="8" autocomplete="new-password" required>
+        <button type="button" class="link" (click)="showPassword.set(!showPassword())">
+          {{ showPassword() ? 'Hide' : 'Show' }}
+        </button>
+      </span>
     </label>
     <br>
-    <small class="hint">At least 8 characters, not only digits, not a common password.</small>
+    <small class="hint">At least 8 characters, not only digits, not a common password.
+      Stored only as an Argon2 hash - nobody, including the clinic, can read it.</small>
   </p>
   <p>
     <label>Repeat password<br>
-      <input type="password" name="password2" [(ngModel)]="password2" required>
+      <input [type]="showPassword() ? 'text' : 'password'" name="password2" [(ngModel)]="password2"
+             autocomplete="new-password" required>
     </label>
   </p>
 

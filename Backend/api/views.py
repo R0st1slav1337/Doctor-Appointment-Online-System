@@ -10,12 +10,14 @@ from django.core.validators import validate_email
 from django.db import IntegrityError, connection, transaction
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import api_view, authentication_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes, throttle_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import Doctors, Patients, PhoneCountries, Specialties
 from .roles import get_role, role_required
 from .serializers import DoctorSerializer
+from .throttles import LoginThrottle, PasswordChangeThrottle, RegisterThrottle
 
 # Public endpoints (doctors, free slots, login, register, phone countries) have @authentication_classes([]):
 # the token is not checked there. Without it, an old token left in the browser (for example after the
@@ -44,6 +46,7 @@ def free_slots_list(request):
 
 @api_view(['POST'])
 @authentication_classes([])
+@throttle_classes([LoginThrottle])   # Task 11 - Amina: max 5 login attempts per minute from one IP
 def login(request):
     email = request.data.get('email', '')
     password = request.data.get('password', '')
@@ -75,6 +78,22 @@ def phone_countries_list(request):
     return Response(list(countries))
 
 
+def _parse_phone(country_code, raw_phone):
+    """Country + number without the code -> (country, phone in E.164, error text or None).
+    E.164 = "+" + country dial code + digits, e.g. +77011234567. Used by registration and the profile."""
+    digits = re.sub(r'\D', '', str(raw_phone or ''))
+    country = PhoneCountries.objects.filter(
+        country_code=str(country_code or '').strip().upper(), is_active=True).first()
+    if country is None:
+        return None, None, 'Choose the country of your phone number.'
+    if not country.min_digits <= len(digits) <= country.max_digits:
+        need = (str(country.min_digits) if country.min_digits == country.max_digits
+                else f'{country.min_digits}-{country.max_digits}')
+        return country, None, (f'For {country.name} the phone number without the country code '
+                               f'must have {need} digits, you entered {len(digits)}.')
+    return country, '+' + country.dial_code + digits, None
+
+
 def _db_error_message(error):
     """Readable text for an error raised by a PostgreSQL constraint or trigger."""
     text = str(error)
@@ -89,6 +108,7 @@ def _db_error_message(error):
 # so nobody can register himself as a doctor, administrator or manager.
 @api_view(['POST'])
 @authentication_classes([])
+@throttle_classes([RegisterThrottle])
 def register(request):
     data = request.data
     full_name = str(data.get('full_name', '')).strip()
@@ -112,24 +132,17 @@ def register(request):
     if birth_date < date(1900, 1, 1) or birth_date > date.today():
         return Response({'detail': 'The date of birth must be between 1900 and today.'}, status=400)
 
-    country = PhoneCountries.objects.filter(country_code=phone_country, is_active=True).first()
-    if country is None:
-        return Response({'detail': 'Choose the country of your phone number.'}, status=400)
-    if not country.min_digits <= len(digits) <= country.max_digits:
-        return Response({
-            'detail': f'For {country.name} the phone number without the country code '
-                      f'must have {country.min_digits}-{country.max_digits} digits.'
-        }, status=400)
+    country, full_phone, phone_error = _parse_phone(phone_country, digits)
+    if phone_error:
+        return Response({'detail': phone_error}, status=400)
 
     try:
         validate_password(password, user=User(username=email, email=email))
     except ValidationError as e:
         return Response({'detail': ' '.join(e.messages)}, status=400)
 
-    # E.164 format: "+" + country dial code + digits, e.g. +77011234567.
     # The database checks the length again for the chosen country (trigger trg_patients_phone)
     # and keeps the phone unique (index ux_patients_phone): one person = one account.
-    full_phone = '+' + country.dial_code + digits
     if Patients.objects.filter(phone=full_phone).exists():
         return Response({'detail': 'This phone number is already registered.'}, status=400)
 
@@ -140,9 +153,8 @@ def register(request):
             or Doctors.objects.filter(email=email).exists()):
         return Response({'detail': 'This email is already registered.'}, status=400)
 
-    # One hash, two places: patients.password_hash (the table requires it) and the Django login account.
-    # The password itself is never stored. The site logs in through the Django account.
-    hashed = make_password(password)
+    # Task 11 - Amina: the password is stored ONLY as a hash (Argon2, see PASSWORD_HASHERS in settings.py)
+    # and ONLY in the Django login account. The patients table has no password column any more.
     try:
         # the patient row and the login account are created together or not at all
         with transaction.atomic():
@@ -152,10 +164,9 @@ def register(request):
                 phone_country=country,
                 phone=full_phone,
                 birth_date=birth_date,
-                password_hash=hashed,
                 created_at=timezone.now(),
             )
-            user = User.objects.create(username=email, email=email, password=hashed)
+            user = User.objects.create_user(username=email, email=email, password=password)
             group, _ = Group.objects.get_or_create(name='patient')
             user.groups.add(group)
     except IntegrityError as e:
@@ -301,6 +312,118 @@ def doctor_load_report(request):
             GROUP BY doctor_id, doctor_name
             ORDER BY doctor_name
         """)
+        columns = [column[0] for column in cursor.description]
+        rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    return Response(rows)
+
+# ---- Task 11 - Amina: account security and the patient's contacts ----------------------
+
+# Log out on the SERVER: the token is deleted, so a copied token stops working too.
+# (Before, logout only removed the token from the browser; the token itself stayed valid forever.)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout(request):
+    Token.objects.filter(user=request.user).delete()
+    return Response(status=204)
+
+
+# Change password: the old password is required, the new one goes through the same rules as at registration.
+# After the change all old tokens are deleted (other devices are logged out) and a new token is returned.
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([PasswordChangeThrottle])
+def change_password(request):
+    user = request.user
+    old_password = str(request.data.get('old_password', ''))
+    new_password = str(request.data.get('new_password', ''))
+    if not user.check_password(old_password):
+        return Response({'detail': 'The current password is wrong.'}, status=400)
+    if new_password == old_password:
+        return Response({'detail': 'The new password must be different from the current one.'}, status=400)
+    try:
+        validate_password(new_password, user=user)
+    except ValidationError as e:
+        return Response({'detail': ' '.join(e.messages)}, status=400)
+    user.set_password(new_password)   # Argon2 hash with a new random salt
+    user.save(update_fields=['password'])
+    Token.objects.filter(user=user).delete()
+    token = Token.objects.create(user=user)
+    return Response({'token': token.key, 'email': user.username, 'role': get_role(user)})
+
+
+def _phone_country_dict(country):
+    return {'country_code': country.country_code, 'name': country.name, 'dial_code': country.dial_code,
+            'min_digits': country.min_digits, 'max_digits': country.max_digits,
+            'example_mask': country.example_mask}
+
+
+def _patient_contacts(patient):
+    return {
+        'full_name': patient.full_name,
+        'email': patient.email,
+        'phone': patient.phone,
+        'phone_country': _phone_country_dict(patient.phone_country),
+        'birth_date': patient.birth_date,
+    }
+
+
+# GET: own profile. A patient also gets the contacts (phone with country, date of birth),
+# a doctor gets the specialty and room. Only the OWN record: it is found by the email of the token's user.
+# PATCH (patient): change the phone country and number. Checked here and again by the database trigger.
+@api_view(['GET', 'PATCH'])
+@role_required('patient', 'doctor', 'admin', 'manager')
+def my_profile(request):
+    role = get_role(request.user)
+    email = request.user.username
+    patient = None
+    if role == 'patient':
+        patient = Patients.objects.select_related('phone_country').filter(email=email).first()
+
+    if request.method == 'PATCH':
+        if patient is None:
+            return Response({'detail': 'Only a patient can change the phone here.'}, status=403)
+        country, full_phone, phone_error = _parse_phone(
+            request.data.get('phone_country'), request.data.get('phone'))
+        if phone_error:
+            return Response({'detail': phone_error}, status=400)
+        if Patients.objects.filter(phone=full_phone).exclude(patient_id=patient.patient_id).exists():
+            return Response({'detail': 'This phone number is already registered.'}, status=400)
+        try:
+            with transaction.atomic():
+                Patients.objects.filter(patient_id=patient.patient_id).update(
+                    phone_country=country, phone=full_phone)
+        except IntegrityError as e:
+            return Response({'detail': _db_error_message(e)}, status=400)
+        patient = Patients.objects.select_related('phone_country').get(patient_id=patient.patient_id)
+
+    data = {'email': email, 'role': role}
+    if patient is not None:
+        data['contacts'] = _patient_contacts(patient)
+    elif role == 'doctor':
+        doctor = Doctors.objects.select_related('specialty').filter(email=email).first()
+        if doctor is not None:
+            data['doctor'] = {'full_name': doctor.full_name, 'specialty': doctor.specialty.name,
+                              'room_number': doctor.room_number}
+    return Response(data)
+
+
+# The patient's OWN appointments with the reason for the visit (newest first).
+# Other patients' appointments are never returned: the filter is by the email of the logged-in user.
+@api_view(['GET'])
+@role_required('patient')
+def my_appointments(request):
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT a.appointment_id, a.status, a.reason, t.slot_date, t.start_time, t.end_time,
+                   d.full_name AS doctor_name, s.name AS specialty, d.room_number
+            FROM appointments a
+            JOIN patients p    ON p.patient_id = a.patient_id
+            JOIN time_slots t  ON t.slot_id = a.slot_id
+            JOIN doctors d     ON d.doctor_id = t.doctor_id
+            JOIN specialties s ON s.specialty_id = d.specialty_id
+            WHERE p.email = %s
+            ORDER BY t.slot_date DESC, t.start_time DESC
+        """, [request.user.username])
         columns = [column[0] for column in cursor.description]
         rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
     return Response(rows)

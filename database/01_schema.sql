@@ -79,7 +79,8 @@ CREATE TABLE patients (
     -- the length for the selected country is checked by trigger trg_patients_phone (02_functions_views.sql)
     phone         varchar(16)  NOT NULL CHECK (phone ~ '^\+[1-9][0-9]{6,14}$'),
     birth_date    date         NOT NULL CHECK (birth_date >= DATE '1900-01-01' AND birth_date <= CURRENT_DATE),
-    password_hash varchar(255) NOT NULL,   -- Django password hash (the same as in the login account), never the password
+    -- No password here. Task 10/11 - Amina: the password hash is kept in ONE place only - the Django login
+    -- account (auth_user.password, Argon2). The patient is linked to it by email.
     created_at    timestamptz  NOT NULL DEFAULT now()
 );
 

@@ -12,17 +12,17 @@ INSERT INTO doctors(specialty_id, full_name, email, room_number, consultation_fe
  (2,'Dr. Marat Sadykov','m.sadykov@clinic.test','204',12000),
  (3,'Dr. Dana Omarova','d.omarova@clinic.test','305',10000);
 
--- password_hash below is a placeholder, NOT a real hash
-INSERT INTO patients(full_name, email, phone, birth_date, password_hash) VALUES
- ('Test Patient A','a@mail.test','+77010000001','2001-03-14','placeholder'),
- ('Test Patient B','b@mail.test','+77010000002','1995-07-02','placeholder'),
- ('Test Patient C','c@mail.test','+77010000003','1988-11-23','placeholder'),
- ('Test Patient D','d@mail.test','+77010000004','2003-01-30','placeholder');
+-- Login accounts (with hashed passwords) are created by Django: python manage.py setup_roles
+INSERT INTO patients(full_name, email, phone, birth_date) VALUES
+ ('Test Patient A','a@mail.test','+77010000001','2001-03-14'),
+ ('Test Patient B','b@mail.test','+77010000002','1995-07-02'),
+ ('Test Patient C','c@mail.test','+77010000003','1988-11-23'),
+ ('Test Patient D','d@mail.test','+77010000004','2003-01-30');
 
 -- patients with a non-Kazakhstan phone (country is chosen in the phone input)
-INSERT INTO patients(full_name, email, phone_country, phone, birth_date, password_hash) VALUES
- ('Test Patient E','e@mail.test','UZ','+998901234567','1999-05-10','placeholder'),
- ('Test Patient F','f@mail.test','KG','+996555123456','1992-09-18','placeholder');
+INSERT INTO patients(full_name, email, phone_country, phone, birth_date) VALUES
+ ('Test Patient E','e@mail.test','UZ','+998901234567','1999-05-10'),
+ ('Test Patient F','f@mail.test','KG','+996555123456','1992-09-18');
 
 -- Task 10 - Gulsezim
 -- Weekly schedules for three doctors.

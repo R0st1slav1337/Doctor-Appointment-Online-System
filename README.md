@@ -12,7 +12,8 @@ Python 3.12+, Node.js 20+, Angular CLI (`npm install -g @angular/cli`), PostgreS
    The app connects as `postgres`, so `03_roles.sql` is not required, but it must run after `02` if you use it.
 3. Check: run `database/99_tests.sql`. It must end with `failed = 0`. Test data is rolled back.
 4. Already have a database from an older version? Do not patch it: drop `clinic` and repeat steps 1-3.
-   (`database/05_migration_phone_reason.sql` exists only for databases created before the phone/reason change.)
+   (`database/05_migration_phone_reason.sql` exists only for databases created before the phone/reason change,
+   `database/06_migration_passwords.sql` - for databases created before the password storage change.)
 
 What the database does by itself:
 - **Weekly schedules:** `weekly_schedules` holds one working period and an optional lunch break per doctor and weekday
@@ -23,6 +24,8 @@ What the database does by itself:
   earlier than the original one). If there is no such slot, the old booking stays cancelled. Past and completed
   appointments are kept. Booking an inactive doctor is rejected. Patients are not notified yet.
 - **Phone:** stored as `+` and digits (E.164); the country is chosen from `phone_countries` and the length is checked per country.
+- **Passwords:** never stored in the clinic tables. The only copy is a salted Argon2id hash in the Django login account
+  (`auth_user.password`). Login: max 5 attempts per minute per IP (429 after that). Log out deletes the token on the server.
 
 ## 2. Backend
 ```
@@ -53,6 +56,11 @@ Open http://localhost:4200 - you should see the list of doctors.
 - Phone with country selection and longer appointment reason - Amina
 - Automatic refresh of the doctors list and free slots (every 30 seconds) - Altynai
 - Role rules, README, merge of the above into one schema - Rostislav
+
+## Task 11: who did what
+- Password storage and account security (Argon2, one place for the hash, login attempt limit, server logout,
+  password change), phone country on the frontend, profile with contacts and own appointments with the reason - Amina
+  (`api/throttles.py`, `services/PhoneService.ts`, `pages/me`, `database/06_migration_passwords.sql`)
 
 ## Rules
 - Do not commit passwords. Use `$env:DB_PASSWORD`.

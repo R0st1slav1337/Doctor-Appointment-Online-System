@@ -22,7 +22,7 @@ GRANT EXECUTE ON FUNCTION book_appointment(integer, integer, varchar),
                           reschedule_appointment(integer, integer, integer),
                           generate_slots(date, date, integer) TO clinic_app;
 
--- Reporting: read-only, without password_hash and without the health 'reason' text.
+-- Reporting: read-only, without personal contacts and without the health 'reason' text.
 GRANT SELECT ON specialties, doctors, time_slots, weekly_schedules TO clinic_report;
 GRANT SELECT (patient_id, created_at) ON patients TO clinic_report;
 GRANT SELECT (appointment_id, patient_id, slot_id, status, created_at) ON appointments TO clinic_report;

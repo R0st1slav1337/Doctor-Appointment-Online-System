@@ -51,7 +51,6 @@ class Patients(models.Model):
     phone_country = models.ForeignKey(PhoneCountries, models.DO_NOTHING, db_column='phone_country')
     phone = models.CharField(max_length=16)  # E.164: +77011234567
     birth_date = models.DateField()
-    password_hash = models.CharField(max_length=255)
     created_at = models.DateTimeField()
 
     class Meta:
