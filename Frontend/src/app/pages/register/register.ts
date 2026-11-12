@@ -17,6 +17,8 @@ export class Register implements OnInit {
   private router = inject(Router);
 
   countries = signal<PhoneCountry[]>([]);
+  loadingCountries = signal(true);
+  countryError = signal('');
   fullName = '';
   email = '';
   birthDate = '';
@@ -30,9 +32,22 @@ export class Register implements OnInit {
   showPassword = signal(false);
 
   ngOnInit(): void {
+    this.loadCountries();
+  }
+
+  loadCountries(): void {
+    this.loadingCountries.set(true);
+    this.countryError.set('');
     this.phones.countries$.subscribe({
-      next: (list) => this.countries.set(list),
-      error: () => this.errorMessage.set('Failed to load the list of countries.')
+      next: (list) => {
+        this.countries.set(list);
+        this.loadingCountries.set(false);
+        if (!list.length) this.countryError.set('No countries are available. Please check the database setup.');
+      },
+      error: () => {
+        this.loadingCountries.set(false);
+        this.countryError.set('Could not load countries from the server. Check that the backend is running, then retry.');
+      }
     });
   }
 
@@ -55,6 +70,10 @@ export class Register implements OnInit {
 
   submit() {
     this.errorMessage.set('');
+    if (!this.selectedCountry()) {
+      this.countryError.set('Choose a country after the country list has loaded.');
+      return;
+    }
     // the same length check as on the server - just to show the error earlier
     const c = this.selectedCountry();
     if (c && !this.phoneOk()) {

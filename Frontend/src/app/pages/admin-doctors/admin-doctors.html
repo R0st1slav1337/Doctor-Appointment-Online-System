@@ -71,3 +71,26 @@
     }
   </tbody>
 </table>
+
+<h2>Active appointments</h2>
+@if (appointments().length === 0) {
+  <p>No active appointments.</p>
+} @else {
+  <table>
+    <thead>
+      <tr><th>Patient</th><th>Doctor</th><th>Date</th><th>Time</th><th>Reason</th><th></th></tr>
+    </thead>
+    <tbody>
+      @for (a of appointments(); track a.appointment_id) {
+        <tr>
+          <td>{{ a.patient_name }}</td>
+          <td>{{ a.doctor_name }}<br><small>{{ a.specialty }}</small></td>
+          <td>{{ a.slot_date }}</td>
+          <td>{{ a.start_time.slice(0, 5) }}–{{ a.end_time.slice(0, 5) }}</td>
+          <td>{{ a.reason || '—' }}</td>
+          <td><button type="button" class="cancel-button" (click)="cancelAppointment(a.appointment_id)">Cancel</button></td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}

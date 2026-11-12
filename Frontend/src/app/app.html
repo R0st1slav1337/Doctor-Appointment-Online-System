@@ -1,23 +1,30 @@
-<nav>
-  <a routerLink="/">Doctors</a>
-  <a routerLink="/free-slots">Free Slots</a>
+<nav class="app-nav" aria-label="Main navigation">
+  <a class="brand" routerLink="/" aria-label="Clinic home">
+    <span class="brand-mark">+</span>
+    <span>ClinicCare</span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" routerLink="/">Doctors</a>
+    <a class="nav-link" routerLink="/free-slots">Free Slots</a>
+  </div>
   @if (auth.isLoggedIn()) {
-    <a routerLink="/me">Profile</a>
+    <div class="nav-actions">
+      <a class="nav-link" routerLink="/me">Profile</a>
     <!-- Links are shown by role for convenience only. The real protection is on the server (role_required). -->
     @if (auth.role() === 'admin') {
-      <a routerLink="/admin/doctors">Manage doctors</a>
+        <a class="nav-link" routerLink="/admin/doctors">Manage doctors</a>
     }
     @if (auth.role() === 'admin' || auth.role() === 'manager') {
-      <a routerLink="/reports">Reports</a>
+        <a class="nav-link" routerLink="/reports">Reports</a>
     }
-    <span class="user">{{ auth.email() }} ({{ auth.role() }})</span>
-    <button type="button" (click)="logout()">Log out</button>
+      <span class="user">{{ auth.email() }} <span class="role">{{ auth.role() }}</span></span>
+      <button class="nav-button" type="button" (click)="logout()">Log out</button>
+    </div>
   } @else {
-    <span class="user">
-      <a routerLink="/login">Log in</a>
-      <a routerLink="/register">Register</a>
-    </span>
+    <div class="nav-actions">
+      <a class="nav-link" routerLink="/login">Log in</a>
+      <a class="nav-button" routerLink="/register">Register</a>
+    </div>
   }
 </nav>
-<hr>
 <router-outlet />

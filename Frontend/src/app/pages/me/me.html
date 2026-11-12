@@ -1,5 +1,13 @@
 <h1>My Profile</h1>
 
+@if (profileLoading()) {
+  <p class="muted" role="status">Loading your profile…</p>
+}
+@if (profileError()) {
+  <p class="error" role="alert">{{ profileError() }}</p>
+  <button type="button" (click)="loadProfile()">Retry</button>
+}
+
 @if (profile(); as p) {
   <section>
     <h2>Account</h2>
@@ -51,12 +59,18 @@
 
     <section>
       <h2>My appointments</h2>
+      @if (appointmentNotice()) {
+        <p class="ok" role="status">{{ appointmentNotice() }}</p>
+      }
+      @if (appointmentError()) {
+        <p class="error" role="alert">{{ appointmentError() }}</p>
+      }
       @if (appointments().length === 0) {
         <p class="muted">You have no appointments yet.</p>
       } @else {
         <table>
           <thead>
-            <tr><th>Date</th><th>Time</th><th>Doctor</th><th>Status</th><th>Reason for the visit</th></tr>
+            <tr><th>Date</th><th>Time</th><th>Doctor</th><th>Status</th><th>Reason for the visit</th><th></th></tr>
           </thead>
           <tbody>
             @for (a of appointments(); track a.appointment_id) {
@@ -66,6 +80,15 @@
                 <td>{{ a.doctor_name }}<br><small class="muted">{{ a.specialty }}{{ a.room_number ? ', room ' + a.room_number : '' }}</small></td>
                 <td>{{ a.status }}</td>
                 <td class="reason">{{ a.reason || '—' }}</td>
+                <td>
+                  @if (a.status === 'booked') {
+                    <button type="button" class="cancel-appointment"
+                      [disabled]="cancellingAppointmentId() === a.appointment_id"
+                      (click)="cancelAppointment(a.appointment_id)">
+                      {{ cancellingAppointmentId() === a.appointment_id ? 'Cancelling…' : 'Cancel appointment' }}
+                    </button>
+                  }
+                </td>
               </tr>
             }
           </tbody>

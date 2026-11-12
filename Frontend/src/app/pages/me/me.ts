@@ -49,7 +49,12 @@ export class Me implements OnInit {
   phones = inject(PhoneService);
 
   profile = signal<Profile | null>(null);
+  profileLoading = signal(true);
+  profileError = signal('');
   appointments = signal<Appointment[]>([]);
+  appointmentNotice = signal('');
+  appointmentError = signal('');
+  cancellingAppointmentId = signal<number | null>(null);
   countries = signal<PhoneCountry[]>([]);
 
   // edit phone
@@ -70,24 +75,57 @@ export class Me implements OnInit {
   contacts = computed(() => this.profile()?.contacts);
 
   ngOnInit(): void {
+    this.loadProfile();
+  }
+
+  loadProfile(): void {
+    this.profileLoading.set(true);
+    this.profileError.set('');
     this.http.get<Profile>(`${API}/me/profile/`).subscribe({
       next: (p) => {
+        this.profileLoading.set(false);
         this.profile.set(p);
         if (p.role === 'patient') {
           this.loadAppointments();
           this.phones.countries$.subscribe((list) => this.countries.set(list));
         }
       },
-      // token is not valid any more (for example the database was recreated): log in again
-      error: () => {
-        this.auth.clearSession();
-        this.router.navigate(['/login']);
+      error: (error) => {
+        this.profileLoading.set(false);
+        if (error.status === 401) {
+          this.auth.clearSession();
+          this.router.navigate(['/login']);
+          return;
+        }
+        this.profileError.set(
+          error.status === 0
+            ? 'Cannot reach the server. Your login is still saved; check that the backend is running and retry.'
+            : 'Could not load your profile. Your login is still saved; please retry.'
+        );
       }
     });
   }
 
   private loadAppointments() {
     this.http.get<Appointment[]>(`${API}/me/appointments/`).subscribe((list) => this.appointments.set(list));
+  }
+
+  cancelAppointment(appointmentId: number) {
+    if (!window.confirm('Cancel this appointment?')) return;
+    this.appointmentNotice.set('');
+    this.appointmentError.set('');
+    this.cancellingAppointmentId.set(appointmentId);
+    this.http.post(`${API}/me/appointments/cancel/`, { appointment_id: appointmentId }).subscribe({
+      next: () => {
+        this.cancellingAppointmentId.set(null);
+        this.appointmentNotice.set('Your appointment was cancelled.');
+        this.loadAppointments();
+      },
+      error: (err) => {
+        this.cancellingAppointmentId.set(null);
+        this.appointmentError.set(err.error?.detail ?? 'Failed to cancel the appointment.');
+      }
+    });
   }
 
   phoneText(c: Contacts): string {

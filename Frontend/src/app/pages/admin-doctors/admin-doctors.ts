@@ -19,6 +19,17 @@ interface AdminDoctor {
   is_active: boolean;
 }
 
+interface AdminAppointment {
+  appointment_id: number;
+  patient_name: string;
+  doctor_name: string;
+  specialty: string;
+  slot_date: string;
+  start_time: string;
+  end_time: string;
+  reason: string | null;
+}
+
 @Component({
   selector: 'app-admin-doctors',
   standalone: true,
@@ -31,6 +42,7 @@ export class AdminDoctors implements OnInit {
 
   specialties = signal<Specialty[]>([]);
   doctors = signal<AdminDoctor[]>([]);
+  appointments = signal<AdminAppointment[]>([]);
   errorMessage = signal('');
   successMessage = signal('');
   loading = signal(false);
@@ -48,12 +60,33 @@ export class AdminDoctors implements OnInit {
       error: () => this.errorMessage.set('Failed to load specialties.')
     });
     this.loadDoctors();
+    this.loadAppointments();
   }
 
   loadDoctors() {
     this.http.get<AdminDoctor[]>(`${API}/admin/doctors/`).subscribe({
       next: (list) => this.doctors.set(list),
       error: () => this.errorMessage.set('Failed to load doctors.')
+    });
+  }
+
+  loadAppointments() {
+    this.http.get<AdminAppointment[]>(`${API}/admin/appointments/`).subscribe({
+      next: (list) => this.appointments.set(list),
+      error: () => this.errorMessage.set('Failed to load appointments.')
+    });
+  }
+
+  cancelAppointment(appointmentId: number) {
+    if (!window.confirm('Cancel this appointment?')) return;
+    this.errorMessage.set('');
+    this.successMessage.set('');
+    this.http.post(`${API}/admin/appointments/`, { appointment_id: appointmentId }).subscribe({
+      next: () => {
+        this.successMessage.set('Appointment cancelled by administrator.');
+        this.loadAppointments();
+      },
+      error: (err) => this.errorMessage.set(err.error?.detail ?? 'Failed to cancel appointment.')
     });
   }
 

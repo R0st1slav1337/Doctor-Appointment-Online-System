@@ -11,9 +11,10 @@ Python 3.12+, Node.js 20+, Angular CLI (`npm install -g @angular/cli`), PostgreS
    `database/01_schema.sql`, `database/02_functions_views.sql`, `database/03_roles.sql` (optional), `database/04_seed.sql`.
    The app connects as `postgres`, so `03_roles.sql` is not required, but it must run after `02` if you use it.
 3. Check: run `database/99_tests.sql`. It must end with `failed = 0`. Test data is rolled back.
-4. Already have a database from an older version? Do not patch it: drop `clinic` and repeat steps 1-3.
-   (`database/05_migration_phone_reason.sql` exists only for databases created before the phone/reason change,
-   `database/06_migration_passwords.sql` - for databases created before the password storage change.)
+4. For an existing database, preserve its records and apply the upgrade scripts that match its age:
+   `database/05_migration_phone_reason.sql`, `database/06_migration_passwords.sql`, then
+   `database/07_migration_weekly_schedules.sql`. These scripts are safe to re-run. A brand-new database
+   should use steps 1-3 instead.
 
 What the database does by itself:
 - **Weekly schedules:** `weekly_schedules` holds one working period and an optional lunch break per doctor and weekday

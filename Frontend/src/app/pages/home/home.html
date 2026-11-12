@@ -1,35 +1,41 @@
 
-<section class="hero">
-  <div class="hero-content">
-    <span class="eyebrow">ONLINE DOCTOR APPOINTMENT SYSTEM</span>
-
-    <h1>Find the right doctor for you</h1>
-
-    <p>
-      Browse available doctors, check appointment times
-      and book your visit online.
-    </p>
-
-    <div class="hero-actions">
-      <a class="primary-button" href="#doctors">
-        Find a doctor
-      </a>
-
-      <a class="secondary-button" routerLink="/login">
-        Log in
-      </a>
+@if (auth.isLoggedIn()) {
+  <section class="member-hero">
+    <div>
+      <span class="eyebrow">YOUR CLINIC ACCOUNT</span>
+      <h1>Welcome back</h1>
+      <p>Signed in as {{ auth.email() }}. Browse doctors or manage your appointments.</p>
     </div>
-  </div>
+    <div class="member-actions">
+      <a class="primary-button" routerLink="/free-slots">Browse free slots</a>
+      <a class="secondary-button" routerLink="/me">Open profile</a>
+    </div>
+  </section>
+} @else {
+  <section class="hero">
+    <div class="hero-content">
+      <span class="eyebrow">ONLINE DOCTOR APPOINTMENT SYSTEM</span>
 
-  <div class="hero-info">
-    <div class="info-icon">+</div>
-    <h2>Healthcare made easier</h2>
-    <p>
-      Choose a doctor and find a convenient time
-      for your appointment.
-    </p>
-  </div>
-</section>
+      <h1>Find the right doctor for you</h1>
+
+      <p>
+        Browse available doctors, check appointment times
+        and book your visit online.
+      </p>
+
+      <div class="hero-actions">
+        <a class="primary-button" href="#doctors">Find a doctor</a>
+        <a class="secondary-button" routerLink="/login">Log in</a>
+      </div>
+    </div>
+
+    <div class="hero-info">
+      <div class="info-icon">+</div>
+      <h2>Healthcare made easier</h2>
+      <p>Choose a doctor and find a convenient time for your appointment.</p>
+    </div>
+  </section>
+}
 
 <section class="features">
   <div>
@@ -72,6 +78,29 @@
     </div>
   }
 
+  <div class="doctor-filters" aria-label="Filter doctors">
+    <label>
+      <span>Search by doctor name</span>
+      <input
+        type="search"
+        placeholder="Enter a doctor's name"
+        [value]="searchTerm()"
+        (input)="searchTerm.set($any($event.target).value)" />
+    </label>
+    <label>
+      <span>Specialty</span>
+      <select
+        [value]="selectedSpecialty()"
+        (change)="selectedSpecialty.set($any($event.target).value)">
+        <option value="">All specialties</option>
+        @for (specialty of specialties(); track specialty) {
+          <option [value]="specialty">{{ specialty }}</option>
+        }
+      </select>
+    </label>
+    <span class="results-count">{{ filteredDoctors().length }} doctors</span>
+  </div>
+
   @if (doctors().length === 0 && !errorMessage()) {
     <div class="empty-message">
       <h3>No doctors available</h3>
@@ -79,14 +108,21 @@
     </div>
   }
 
+  @if (doctors().length > 0 && filteredDoctors().length === 0) {
+    <div class="empty-message">
+      <h3>No matching doctors</h3>
+      <p>Try another name or specialty.</p>
+    </div>
+  }
+
   <div class="doctor-grid">
-    @for (doctor of doctors(); track doctor.doctor_id) {
+    @for (doctor of filteredDoctors(); track doctor.doctor_id) {
       <article class="doctor-card">
         <div class="doctor-avatar">+</div>
 
         <h3>{{ doctor.full_name }}</h3>
 
-        <p class="doctor-label">Medical specialist</p>
+        <p class="doctor-label">{{ doctor.specialty_name }}</p>
 
         <div class="doctor-details">
           <span>Consultation fee</span>

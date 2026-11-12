@@ -90,3 +90,17 @@ button.link {
   cursor: pointer;
   padding: 0 0.4rem;
 }
+
+.cancel-appointment {
+  padding: 0.4rem 0.65rem;
+  color: #b42318;
+  background: #fff0f0;
+  border: 1px solid #f1b4b0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cancel-appointment:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
