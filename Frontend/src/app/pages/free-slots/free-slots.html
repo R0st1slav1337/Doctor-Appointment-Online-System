@@ -1,25 +1,109 @@
-<h1>Free Slots</h1>
+<div class="slots-page">
+  <a class="back-link" routerLink="/">← Back to doctors</a>
 
-<p><a routerLink="/">← Back to Doctor List</a></p>
-
-@if (lastUpdated(); as updated) {
-  <p>Free slot list updated: {{ updated | date:'HH:mm:ss' }}</p>
-}
-
-@if (errorMessage()) {
-  <p class="error">{{ errorMessage() }}</p>
-}
-
-@if (freeSlots().length === 0 && !errorMessage()) {
-  <p>No free slots available.</p>
-}
-
-<ul>
-  @for (slot of freeSlots(); track slot.slot_id) {
-    <li>
-      {{ slot.doctor_name }} — {{ slot.specialty }}:
-      {{ slot.slot_date }} {{ slot.start_time }}
-      (until {{ slot.end_time }})
-    </li>
+  @if (selectedDoctorId()) {
+    <div class="page-heading">
+      <span class="eyebrow">AVAILABLE APPOINTMENTS</span>
+      @if (selectedDoctor(); as doctor) {
+        <h1>{{ doctor.full_name }}</h1>
+        <p>{{ doctor.specialty_name }} · choose a day and time</p>
+      } @else {
+        <h1>Doctor’s free slots</h1>
+      }
+    </div>
+  } @else {
+    <div class="page-heading">
+      <span class="eyebrow">AVAILABLE APPOINTMENTS</span>
+      <h1>Free slots by doctor</h1>
+      <p>Choose a doctor, then select a day and an available time.</p>
+    </div>
   }
-</ul>
+
+  @if (lastUpdated(); as updated) {
+    <p class="updated">Updated at {{ updated | date:'HH:mm:ss' }}</p>
+  }
+
+  @if (errorMessage()) {
+    <p class="notice error" role="alert">{{ errorMessage() }}</p>
+  }
+
+  @if (successMessage()) {
+    <p class="notice success" role="status">{{ successMessage() }}</p>
+  }
+
+  @if (freeSlots().length === 0 && !errorMessage()) {
+    <div class="empty-state">
+      <h2>No free slots right now</h2>
+      @if (selectedDoctor(); as doctor) {
+        <p>There are no upcoming times for {{ doctor.full_name }}. Please check again later.</p>
+      } @else {
+        <p>There are no upcoming appointment times. Please check again later.</p>
+      }
+    </div>
+  }
+
+  <div class="doctor-groups">
+    @for (doctor of doctorGroups(); track doctor.doctor_id) {
+      <section class="doctor-group"
+        [attr.aria-labelledby]="!selectedDoctorId() ? 'doctor-' + doctor.doctor_id : null"
+        [attr.aria-label]="selectedDoctorId() ? selectedDoctor()?.full_name : null">
+        @if (!selectedDoctorId()) {
+          <header class="doctor-heading">
+            <div>
+              <h2 [id]="'doctor-' + doctor.doctor_id">{{ doctor.doctor_name }}</h2>
+              <p>{{ doctor.specialty }}</p>
+            </div>
+          </header>
+        }
+
+        <div class="day-groups">
+          @for (day of doctor.days; track day.date) {
+            <section class="day-group" [attr.aria-label]="day.date | date:'EEEE, d MMMM y'">
+              <header class="day-heading">
+                <div>
+                  <h3>{{ day.date | date:'EEEE' }}</h3>
+                  <p>{{ day.date | date:'d MMMM y' }}</p>
+                </div>
+                <span class="day-count">{{ day.slots.length }} times</span>
+              </header>
+
+              <div class="slot-grid">
+                @for (slot of day.slots; track slot.slot_id) {
+                  <article class="slot-card" [class.selected]="selectedSlotId() === slot.slot_id">
+                    <div class="slot-time">
+                      <span>{{ slot.start_time | slice:0:5 }}</span>
+                      <small>to {{ slot.end_time | slice:0:5 }}</small>
+                    </div>
+
+                    @if (auth.role() === 'patient') {
+                      @if (selectedSlotId() === slot.slot_id) {
+                        <form class="booking-form" (ngSubmit)="bookSelectedSlot()">
+                          <label>
+                            Reason for the visit <span>(optional)</span>
+                            <textarea name="visit_reason" [(ngModel)]="visitReason" maxlength="1000" rows="3"></textarea>
+                          </label>
+                          <button class="action-button primary" type="submit" [disabled]="bookingSlotId() === slot.slot_id">
+                            {{ bookingSlotId() === slot.slot_id ? 'Booking…' : 'Confirm appointment' }}
+                          </button>
+                          <button class="action-button secondary" type="button" (click)="selectedSlotId.set(null)">Back</button>
+                        </form>
+                      } @else {
+                        <button class="action-button primary slot-action" type="button" (click)="selectSlot(slot.slot_id)">
+                          Book this time
+                        </button>
+                      }
+                    } @else if (!auth.isLoggedIn()) {
+                      <a class="action-button primary slot-action" routerLink="/login">Log in to book</a>
+                    } @else {
+                      <span class="patient-only">Patient account required</span>
+                    }
+                  </article>
+                }
+              </div>
+            </section>
+          }
+        </div>
+      </section>
+    }
+  </div>
+</div>

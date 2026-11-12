@@ -16,6 +16,35 @@
   margin: 25px 0 40px;
 }
 
+.member-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  margin: 25px 0 40px;
+  padding: 38px 42px;
+  border: 1px solid #d8eaf8;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #eaf5ff, #f5fbff);
+}
+
+.member-hero h1 {
+  margin: 12px 0 8px;
+  font-size: clamp(30px, 4vw, 44px);
+}
+
+.member-hero p {
+  margin: 0;
+  color: #61748a;
+  line-height: 1.6;
+}
+
+.member-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .eyebrow {
   color: #1976c9;
   font-size: 12px;
@@ -141,6 +170,51 @@
   font-size: 13px;
 }
 
+.doctor-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.5fr) minmax(200px, 1fr) auto;
+  align-items: end;
+  gap: 16px;
+  padding: 18px;
+  margin-bottom: 22px;
+  background: #f6f9fc;
+  border: 1px solid #e1eaf2;
+  border-radius: 14px;
+}
+
+.doctor-filters label {
+  display: grid;
+  gap: 7px;
+  color: #435a72;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.doctor-filters input,
+.doctor-filters select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  color: #183153;
+  background: white;
+  border: 1px solid #cbd8e5;
+  border-radius: 9px;
+  font: inherit;
+}
+
+.doctor-filters input:focus,
+.doctor-filters select:focus {
+  outline: 3px solid #c9e7ff;
+  border-color: #1976c9;
+}
+
+.results-count {
+  padding: 12px 0;
+  color: #61748a;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .doctor-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -213,8 +287,18 @@ a:focus-visible {
     padding: 35px 24px;
   }
 
+  .member-hero {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 30px 24px;
+  }
+
   .features,
   .doctor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-filters {
     grid-template-columns: 1fr;
   }
 

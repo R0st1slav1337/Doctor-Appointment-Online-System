@@ -7,7 +7,7 @@ from django.contrib.auth.models import Group, User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.db import IntegrityError, connection, transaction
+from django.db import DatabaseError, IntegrityError, connection, transaction
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, authentication_classes, permission_classes, throttle_classes
@@ -25,7 +25,7 @@ from .throttles import LoginThrottle, PasswordChangeThrottle, RegisterThrottle
 @api_view(['GET'])
 @authentication_classes([])
 def doctors_list(request):
-    doctors = Doctors.objects.filter(is_active=True)
+    doctors = Doctors.objects.filter(is_active=True).select_related('specialty').order_by('full_name')
     return Response(DoctorSerializer(doctors, many=True).data)
 
 # Task 10 - Altynai: free slots endpoint for the auto-refreshing slots page
@@ -33,6 +33,8 @@ def doctors_list(request):
 @authentication_classes([])
 def free_slots_list(request):
     with connection.cursor() as cursor:
+        # Keep a rolling two-week window available as old generated slots expire.
+        cursor.execute('SELECT generate_slots(CURRENT_DATE + 1, CURRENT_DATE + 14, 30)')
         cursor.execute("""
             SELECT slot_id, doctor_id, doctor_name, specialty,
                    consultation_fee_kzt, slot_date, start_time, end_time
@@ -43,6 +45,85 @@ def free_slots_list(request):
         slots = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
     return Response(slots)
+
+
+@api_view(['POST'])
+@role_required('patient')
+def book_appointment(request):
+    try:
+        slot_id = int(request.data.get('slot_id'))
+    except (TypeError, ValueError):
+        return Response({'detail': 'Choose a valid appointment time.'}, status=400)
+
+    reason = str(request.data.get('reason', '')).strip() or None
+    if reason and len(reason) > 1000:
+        return Response({'detail': 'The visit reason must be 1000 characters or fewer.'}, status=400)
+
+    patient = Patients.objects.filter(email=request.user.username).first()
+    if patient is None:
+        return Response({'detail': 'Patient profile was not found.'}, status=404)
+
+    try:
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT book_appointment(%s, %s, %s)', [patient.patient_id, slot_id, reason])
+                appointment_id = cursor.fetchone()[0]
+    except DatabaseError as error:
+        message = str(error).lower()
+        if 'already taken' in message or 'unique' in message:
+            detail = 'This time was just booked by someone else. Please choose another slot.'
+        elif 'unavailable' in message:
+            detail = 'The doctor is unavailable at this time. Please choose another slot.'
+        elif 'past' in message or 'does not exist' in message or 'inactive' in message:
+            detail = 'This appointment time is no longer available. Please choose another slot.'
+        else:
+            detail = 'The appointment could not be created. Please try again.'
+        return Response({'detail': detail}, status=409)
+
+    return Response({
+        'appointment_id': appointment_id,
+        'status': 'booked',
+        'detail': 'Appointment created and confirmed successfully.',
+    }, status=201)
+
+
+@api_view(['GET', 'POST'])
+@role_required('admin')
+def admin_appointments(request):
+    if request.method == 'GET':
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT a.appointment_id, a.status, a.reason, p.full_name AS patient_name,
+                       d.full_name AS doctor_name, s.name AS specialty,
+                       t.slot_date, t.start_time, t.end_time
+                FROM appointments a
+                JOIN patients p ON p.patient_id = a.patient_id
+                JOIN time_slots t ON t.slot_id = a.slot_id
+                JOIN doctors d ON d.doctor_id = t.doctor_id
+                JOIN specialties s ON s.specialty_id = d.specialty_id
+                WHERE a.status = 'booked'
+                ORDER BY t.slot_date, t.start_time
+            """)
+            columns = [column[0] for column in cursor.description]
+            appointments = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        return Response(appointments)
+
+    try:
+        appointment_id = int(request.data.get('appointment_id'))
+    except (TypeError, ValueError):
+        return Response({'detail': 'Choose a valid appointment.'}, status=400)
+
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            UPDATE appointments
+            SET status = 'cancelled'
+            WHERE appointment_id = %s AND status = 'booked'
+            RETURNING appointment_id
+        """, [appointment_id])
+        cancelled_id = cursor.fetchone()
+    if cancelled_id is None:
+        return Response({'detail': 'This appointment is no longer active.'}, status=409)
+    return Response({'appointment_id': cancelled_id[0], 'detail': 'Appointment cancelled.'})
 
 @api_view(['POST'])
 @authentication_classes([])
@@ -429,8 +510,38 @@ def my_appointments(request):
     return Response(rows)
 
 
-# Week 11: Admin-only API. The existing PostgreSQL AFTER UPDATE trigger handles
-# cancellation and automatic rebooking inside the same database transaction.
+@api_view(['POST'])
+@role_required('patient')
+def cancel_my_appointment(request):
+    try:
+        appointment_id = int(request.data.get('appointment_id'))
+    except (TypeError, ValueError):
+        return Response({'detail': 'Choose a valid appointment.'}, status=400)
+
+    patient = Patients.objects.filter(email=request.user.username).first()
+    if patient is None:
+        return Response({'detail': 'Patient profile was not found.'}, status=404)
+
+    try:
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    'SELECT cancel_appointment(%s, %s)',
+                    [appointment_id, patient.patient_id]
+                )
+    except DatabaseError:
+        return Response(
+            {'detail': 'This appointment is no longer active or does not belong to you.'},
+            status=409
+        )
+
+    return Response({
+        'appointment_id': appointment_id,
+        'status': 'cancelled',
+        'detail': 'Your appointment was cancelled.'
+    })
+
+
 @api_view(['POST'])
 @role_required('admin')
 def deactivate_doctor(request, doctor_id):

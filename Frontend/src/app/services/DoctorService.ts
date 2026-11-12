@@ -9,6 +9,13 @@ export class DoctorService {
     return this.http.get<any[]>('http://127.0.0.1:8000/api/doctors/');
   }
   getFreeSlots() {
-  return this.http.get<any[]>('http://127.0.0.1:8000/api/free-slots/');
-}
+    return this.http.get<any[]>('http://127.0.0.1:8000/api/free-slots/');
+  }
+
+  bookAppointment(slotId: number, reason: string) {
+    return this.http.post<{ appointment_id: number; status: string; detail: string }>(
+      'http://127.0.0.1:8000/api/appointments/',
+      { slot_id: slotId, reason }
+    );
+  }
 }

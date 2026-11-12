@@ -1,5 +1,37 @@
 .phone-field {
-  margin: 1em 0;
+  margin: 0 0 20px;
+}
+
+.register-page {
+  align-items: flex-start;
+}
+
+.register-card {
+  max-width: 640px;
+}
+
+.register-card h1 {
+  font-size: 30px;
+}
+
+.register-card .form-group {
+  margin-bottom: 18px;
+}
+
+.register-card select {
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 10px 12px;
+  color: #183153;
+  background: white;
+  border: 1px solid #cbd8e5;
+  border-radius: 10px;
+  font: inherit;
+}
+
+.register-card select:focus {
+  outline: 2px solid #96cdf3;
+  border-color: #1976c9;
 }
 
 .phone-row,
@@ -11,7 +43,8 @@
 }
 
 .phone-row select {
-  max-width: 14rem;
+  flex: 1 1 14rem;
+  max-width: none;
 }
 
 .dial {
@@ -21,7 +54,48 @@
 }
 
 .phone-row input {
-  width: 12rem;
+  flex: 2 1 12rem;
+  width: auto;
+}
+
+.pass-row input {
+  min-width: 0;
+  flex: 1;
+}
+
+.pass-row button.link {
+  width: auto;
+  min-height: 40px;
+  padding: 0 10px;
+  color: #1976c9;
+  background: #eef7ff;
+  border: 1px solid #d8eaf8;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+}
+
+.submit-button {
+  margin-top: 8px;
+}
+
+.country-status {
+  color: #61748a;
+}
+
+.country-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.retry-button {
+  width: auto;
+  padding: 8px 12px;
+  background: #b42318;
+  font-size: 13px;
 }
 
 .hint.ok {
