@@ -427,3 +427,23 @@ def my_appointments(request):
         columns = [column[0] for column in cursor.description]
         rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
     return Response(rows)
+
+
+# Week 11: Admin-only API. The existing PostgreSQL AFTER UPDATE trigger handles
+# cancellation and automatic rebooking inside the same database transaction.
+@api_view(['POST'])
+@role_required('admin')
+def deactivate_doctor(request, doctor_id):
+    with transaction.atomic():
+        doctor = Doctors.objects.select_for_update().filter(doctor_id=doctor_id).first()
+        if doctor is None:
+            return Response({'detail': 'Doctor not found'}, status=404)
+        if not doctor.is_active:
+            return Response({'detail': 'Doctor is already inactive'}, status=409)
+        doctor.is_active = False
+        doctor.save(update_fields=['is_active'])
+    return Response({
+        'doctor_id': doctor_id,
+        'is_active': False,
+        'detail': 'Doctor deactivated; future bookings processed by database trigger',
+    }, status=200)

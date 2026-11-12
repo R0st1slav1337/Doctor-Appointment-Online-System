@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (doctors_list, free_slots_list, login, me, admin_check, register, phone_countries_list,
                     specialties_list, admin_doctors, doctor_load_report,
-                    logout, change_password, my_profile, my_appointments)
+                    logout, change_password, my_profile, my_appointments, deactivate_doctor)
 
 urlpatterns = [
     path('doctors/', doctors_list),
@@ -17,5 +17,6 @@ urlpatterns = [
     path('admin-check/', admin_check),
     path('specialties/', specialties_list),
     path('admin/doctors/', admin_doctors),
+    path('admin/doctors/<int:doctor_id>/deactivate/', deactivate_doctor),
     path('reports/doctor-load/', doctor_load_report),
 ]
