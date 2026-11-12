@@ -50,9 +50,43 @@ SELECT
 FROM doctors d
 CROSS JOIN generate_series(1, 5) AS days(day_of_week);
 
+-- Task 11 - Gulsezim
+-- Test absences for three doctors.
+-- The next Monday is always in the future.
+
+-- Doctor 1: sick leave on the next Monday.
+INSERT INTO doctor_unavailability (
+    doctor_id, start_date, end_date, reason
+)
+SELECT
+    1,
+    CURRENT_DATE + (8 - EXTRACT(ISODOW FROM CURRENT_DATE)::integer),
+    CURRENT_DATE + (8 - EXTRACT(ISODOW FROM CURRENT_DATE)::integer),
+    'sick_leave';
+
+-- Doctor 2: vacation on Tuesday and Wednesday.
+INSERT INTO doctor_unavailability (
+    doctor_id, start_date, end_date, reason
+)
+SELECT
+    2,
+    CURRENT_DATE + (9 - EXTRACT(ISODOW FROM CURRENT_DATE)::integer),
+    CURRENT_DATE + (10 - EXTRACT(ISODOW FROM CURRENT_DATE)::integer),
+    'vacation';
+
+-- Doctor 3: extra day off on Friday.
+INSERT INTO doctor_unavailability (
+    doctor_id, start_date, end_date, reason
+)
+SELECT
+    3,
+    CURRENT_DATE + (12 - EXTRACT(ISODOW FROM CURRENT_DATE)::integer),
+    CURRENT_DATE + (12 - EXTRACT(ISODOW FROM CURRENT_DATE)::integer),
+    'day_off';
+
 -- Automatically generate 30-minute appointment slots
 -- for the next 14 days, starting tomorrow.
--- Weekends and lunch breaks are excluded by generate_slots.
+-- Weekends, lunch breaks and doctor absences are excluded.
 
 SELECT generate_slots(
     CURRENT_DATE + 1,

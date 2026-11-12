@@ -1,23 +1,62 @@
-<h1>Login</h1>
 
-<form (ngSubmit)="submit()">
-  <p>
-    <label>Email<br>
-      <input type="email" name="email" [(ngModel)]="email" required>
-    </label>
-  </p>
-  <p>
-    <label>Password<br>
-      <input type="password" name="password" [(ngModel)]="password" required>
-    </label>
-  </p>
+<section class="login-page">
+  <div class="login-card">
+    <div class="login-icon">+</div>
 
-  @if (errorMessage()) {
-    <p class="error">{{ errorMessage() }}</p>
-  }
+    <h1>Welcome back</h1>
 
-  <button type="submit" [disabled]="loading()">Log in</button>
-</form>
+    <p class="subtitle">
+      Log in to your account to manage appointments.
+    </p>
 
-<p>No account yet? <a routerLink="/register">Register as a patient</a></p>
-<p class="hint">Test accounts (password Clinic12345): a@mail.test, a.nurtaeva@clinic.test, admin@clinic.test, manager@clinic.test</p>
+    <form (ngSubmit)="submit()" #loginForm="ngForm">
+      <div class="form-group">
+        <label for="email">Email address</label>
+
+        <input
+          id="email"
+          type="email"
+          name="email"
+          [(ngModel)]="email"
+          required
+          email
+          autocomplete="email"
+          placeholder="Enter your email">
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+
+        <input
+          id="password"
+          type="password"
+          name="password"
+          [(ngModel)]="password"
+          required
+          autocomplete="current-password"
+          placeholder="Enter your password">
+      </div>
+
+      @if (errorMessage()) {
+        <p class="error" role="alert">
+          {{ errorMessage() }}
+        </p>
+      }
+
+      <button
+        type="submit"
+        [disabled]="loading() || loginForm.invalid">
+        {{ loading() ? 'Logging in...' : 'Log in' }}
+      </button>
+    </form>
+
+    <p class="register-link">
+      Don't have an account?
+      <a routerLink="/register">Register as a patient</a>
+    </p>
+
+    <a class="back-link" routerLink="/">
+      Back to home
+    </a>
+  </div>
+</section>
